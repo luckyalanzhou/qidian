@@ -7,7 +7,6 @@ export type WorkspaceShellCommand =
   | { type: 'sign-out' }
   | { type: 'toggle-note-types' }
   | { type: 'add-note-type' }
-  | { type: 'add-category' }
   | { type: 'edit-note-type'; id: string }
   | { type: 'delete-note-type'; id: string }
   | { type: 'delete-note'; id: string };

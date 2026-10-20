@@ -28,7 +28,7 @@ export function createTrashSnapshot(trash: readonly TrashEntry[], now = Date.now
         ? entry.item.title?.trim() || '无标题笔记'
         : entry.item.kind === 'folder' ? `分组：${entry.item.title}` : entry.item.title;
       const detail = entry.kind === 'bookmark' && entry.item.kind === 'link' ? entry.item.url
-        : entry.kind === 'note' ? [entry.item.category || '未分类', ...(entry.item.tags || []).slice(0, 3)].filter(Boolean).join(' · ')
+        : entry.kind === 'note' ? (entry.item.tags || []).slice(0, 3).map(tag => `#${tag}`).join(' · ')
           : '';
       return {
         id: entry.id,

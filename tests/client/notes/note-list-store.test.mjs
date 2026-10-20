@@ -40,7 +40,7 @@ test('Pinia owns note-list filtering, headings, draft projection, and vault inva
   noteList.configure({
     hasDraftContent: item => !!(item.title.trim() || item.body.trim()),
     bodyText: body => body.replace(/<[^>]*>/g, ' '),
-    noteCard: item => ({ id: item.id, title: item.title, type: item.type, typeName: item.type, category: item.category, tags: item.tags, description: item.body, updatedLabel: String(item.updated), pinned: item.pinned }),
+    noteCard: item => ({ id: item.id, title: item.title, type: item.type, typeName: item.type, tags: item.tags, description: item.body, updatedLabel: String(item.updated), pinned: item.pinned }),
     typeName: id => id === 'command' ? '命令速查' : '其他类型',
     displayTypeName: type => type.name
   });
@@ -67,8 +67,8 @@ test('Pinia owns note-list filtering, headings, draft projection, and vault inva
   assert.equal(noteList.snapshot.notes[0].title, '新的网络草稿');
 
   navigation.active = '网络';
-  assert.equal(noteList.snapshot.heading, '网络');
-  assert.deepEqual(noteList.snapshot.notes.map(item => item.id), ['router']);
+  assert.equal(noteList.snapshot.heading, '全部笔记', 'a stale category route falls back to all notes');
+  assert.deepEqual(noteList.snapshot.notes.map(item => item.id), ['router', 'docker'], 'note categories no longer filter the list');
 
   navigation.active = 'all';
   vault.mutate(value => value.notes.push(note({ id: 'new', title: '新笔记', type: 'command', updated: 60 })));

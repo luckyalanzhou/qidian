@@ -14,5 +14,5 @@ test('workspace shell action store delegates typed sidebar operations to the app
 
 test('workspace shell action store is inert until its application boundary is bound', () => {
   const store = useWorkspaceShellActionsStore(createPinia());
-  assert.equal(store.execute({ type: 'add-category' }), false);
+  assert.equal(store.execute({ type: 'delete-note', id: 'note-9' }), false);
 });

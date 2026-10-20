@@ -72,18 +72,12 @@ watch(
             <label class="editor-label" for="editTitle">标题</label>
             <input id="editTitle" v-model="editor.form.title" class="title-input" placeholder="输入笔记标题..." @input="onFormInput" @blur="onFormBlur">
             <details class="editor-properties" :open="propertiesOpen">
-              <summary>笔记属性 <span>类型、分类、标签与来源</span></summary>
+              <summary>笔记属性 <span>类型、标签与来源</span></summary>
               <div class="editor-properties-fields">
               <div class="editor-fields">
                 <label>类型
               <select id="editType" v-model="editor.form.type" class="field" @change="onFormInput" @blur="onFormBlur">
                   <option v-for="type in editor.snapshot.noteTypes" :key="type.id" :value="type.id">{{ type.label }}</option>
-                </select>
-                </label>
-              <label>分类
-              <select id="editCategory" v-model="editor.form.category" class="field" @change="onFormInput" @blur="onFormBlur">
-                  <option value="未分类">未分类</option>
-                  <option v-for="category in editor.snapshot.categories" :key="category" :value="category">{{ category }}</option>
                 </select>
                 </label>
               <label class="tags">标签

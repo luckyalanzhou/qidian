@@ -7,7 +7,6 @@ export type ReaderSnapshot = {
   noteId: string;
   title: string;
   typeLabel: string;
-  category: string;
   updatedLabel: string;
   createdLabel: string;
   readingMinutes: number;

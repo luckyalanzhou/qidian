@@ -12,9 +12,7 @@ export type SidebarSnapshot = {
     bookmarks: number;
     trash: number;
   };
-  categoryCounts: Record<string, number>;
   noteTypes: Array<{ id: string; name: string; count: number }>;
-  categories: string[];
   typesExpanded: boolean;
 };
 
@@ -27,9 +25,7 @@ export type SidebarSnapshotDependencies = {
 
 const emptySnapshot = (): SidebarSnapshot => ({
   counts: { all: 0, recent: 0, pinned: 0, drafts: 0, bookmarks: 0, trash: 0 },
-  categoryCounts: {},
   noteTypes: [],
-  categories: [],
   typesExpanded: true
 });
 
@@ -53,7 +49,6 @@ export const useSidebarStore = defineStore('sidebar', () => {
 
     const notes = value.notes || [];
     const publishedNotes = notes.filter(note => !configured.isDraft(note));
-    const countCategory = (category: string) => publishedNotes.filter(note => note.category === category).length;
     const types = value.noteTypes || [];
     return {
       counts: {
@@ -64,13 +59,11 @@ export const useSidebarStore = defineStore('sidebar', () => {
         bookmarks: bookmarkLinkCount(value.bookmarks || []),
         trash: (value.trash || []).length
       },
-      categoryCounts: Object.fromEntries((value.categories || []).map(category => [category, countCategory(category)])),
       noteTypes: types.map((type: NoteType) => ({
         id: type.id,
         name: configured.displayTypeName(type),
         count: publishedNotes.filter(note => note.type === type.id).length
       })),
-      categories: [...(value.categories || [])],
       typesExpanded: value.noteTypesExpanded !== false
     };
   });

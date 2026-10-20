@@ -185,27 +185,20 @@ test('manual retry continues the retained sync queue instead of queueing a stale
   dom.window.close();
 });
 
-test('new categories use the in-app dialog and are saved to the vault', async t => {
-  const { dom, w, saves } = await mount();
+test('note categories are removed from the interface without overwriting legacy values', async t => {
+  const legacy = { id:'legacy-category', title:'旧分类笔记', type:'note', category:'系统维护', tags:[], body:'<p>兼容数据</p>', source:'', created:1, updated:2, pinned:false, status:'published' };
+  const { dom, w } = await mount({ ...structuredClone(empty), notes:[legacy], categories:['系统维护'] });
   t.after(() => dom.window.close());
-  w.document.querySelector('#addCategory').click();
-  const overlay = w.document.querySelector('#categoryOverlay');
-  const input = w.document.querySelector('#categoryNameInput');
-  assert.equal(overlay.classList.contains('open'), true);
-  assert.equal(overlay.querySelector('[role="dialog"]').getAttribute('aria-modal'), 'true');
-  w.document.querySelector('#categoryDialogConfirm').click();
+  w.document.querySelector('[data-open="legacy-category"]').click();
+  assert.doesNotMatch(w.document.querySelector('#main').textContent, /系统维护/);
+  assert.equal(w.document.querySelector('#main .pill')?.textContent, '普通笔记');
+  w.document.querySelector('#editDoc').click();
+  assert.ok(w.document.querySelector('#editType'), 'note type remains editable');
+  assert.equal(w.document.querySelector('#editCategory')?.type, 'hidden', 'legacy category data stays hidden from the editor form');
+  assert.equal(w.document.querySelector('#addCategory'), null, 'category creation is removed');
+  w.document.querySelector('#saveEditor').click();
   await new Promise(resolve=>setTimeout(resolve,0));
-  assert.equal(overlay.classList.contains('open'), true);
-  assert.equal(w.document.querySelector('#categoryDialogMessage').textContent, '请输入分类名称');
-  input.value = '系统维护';
-  w.document.querySelector('#categoryDialogConfirm').click();
-  await new Promise(resolve=>setTimeout(resolve,0));
-  assert.equal(overlay.classList.contains('open'), false);
-  assert.ok(saves.at(-1).categories.includes('系统维护'));
-  assert.ok(w.vaultDataStore.value.categories.includes('系统维护'),'the Pinia Vault store owns category changes');
-  assert.ok(w.vaultDataStore.generation >= 2,'the validated Vault replacement advances its generation');
-  assert.ok(w.document.querySelector('#sideCats [data-nav="系统维护"]'));
-  dom.window.close();
+  assert.equal(w.vaultDataStore.value.notes[0].category, '系统维护', 'editing does not erase legacy category data');
 });
 
 test('unified navigation exposes peer workspaces and creation choices without mutating content',async()=>{

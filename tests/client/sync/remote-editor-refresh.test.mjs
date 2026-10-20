@@ -4,7 +4,7 @@ import { JSDOM } from 'jsdom';
 import { createRemoteEditorRefresh } from '../../../src/features/editor/remote-refresh.ts';
 
 function harness({ editorHTML = '<p>旧正文</p>', selection = 4, documentSize = 40 } = {}) {
-  const dom = new JSDOM('<input id="editTitle"><input id="editType"><input id="editTags"><input id="editSource"><select id="editCategory"><option value="开发">开发</option></select>');
+  const dom = new JSDOM('<input id="editTitle"><input id="editType"><input id="editTags"><input id="editSource"><input id="editCategory" type="hidden">');
   const calls = [];
   let draft = null;
   let baseline = null;
@@ -29,7 +29,7 @@ function harness({ editorHTML = '<p>旧正文</p>', selection = 4, documentSize 
   return { dom, controller, calls, editor, getDraft: () => draft, getBaseline: () => baseline };
 }
 
-test('remote editor refresh updates fields, adds a new category, and preserves the active selection', () => {
+test('remote editor refresh updates visible fields and preserves hidden legacy category data', () => {
   const h = harness();
   const remote = { id: 'note-1', title: '远端标题', type: 'command', category: '网络', tags: ['OpenWrt', 'DNS'], source: 'https://example.com', body: '<p>远端正文</p>', updated: 8 };
 
@@ -41,6 +41,8 @@ test('remote editor refresh updates fields, adds a new category, and preserves t
   assert.equal(document.querySelector('#editTags').value, 'OpenWrt, DNS');
   assert.equal(document.querySelector('#editSource').value, 'https://example.com');
   assert.equal(document.querySelector('#editCategory').value, '网络');
+  assert.equal(document.querySelector('#editCategory').type, 'hidden');
+  assert.equal(h.getDraft().category, '网络');
   assert.notEqual(h.getDraft(), remote, 'the editor receives an isolated note snapshot');
   assert.deepEqual(h.getBaseline(), { id: 'note-1', updated: 8 });
   assert.deepEqual(h.calls, [

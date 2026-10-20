@@ -2,7 +2,6 @@ export type CaptureDialogTypeOption = { id: string; name: string };
 export type CaptureDialogInput = {
   title: string;
   type: string;
-  category: string;
   source: string;
   body: string;
 };
@@ -15,7 +14,6 @@ type LegacyCaptureDialogDependencies = {
 type LegacyCaptureDialogConfiguration = {
   types: CaptureDialogTypeOption[];
   defaultType: string;
-  categoryOptions: string;
   pasteMode: string;
 };
 
@@ -25,12 +23,11 @@ export function createLegacyCaptureDialog({ document, escapeHtml }: LegacyCaptur
   function open(configuration: LegacyCaptureDialogConfiguration): void {
     const overlay = query<HTMLElement>('#captureOverlay');
     const type = query<HTMLSelectElement>('#captureType');
-    const category = query<HTMLSelectElement>('#captureCat');
     const title = query<HTMLInputElement>('#captureName');
     const source = query<HTMLInputElement>('#captureSource');
     const pad = query<HTMLElement>('#capturePad');
     const pasteMode = query<HTMLSelectElement>('#capturePasteMode');
-    if (!overlay || !type || !category || !title || !source || !pad || !pasteMode) {
+    if (!overlay || !type || !title || !source || !pad || !pasteMode) {
       throw new Error('快速收集表单结构不完整');
     }
 
@@ -38,7 +35,6 @@ export function createLegacyCaptureDialog({ document, escapeHtml }: LegacyCaptur
       .map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.name)}</option>`)
       .join('');
     type.value = configuration.defaultType;
-    category.innerHTML = configuration.categoryOptions;
     title.value = '';
     source.value = '';
     pad.innerHTML = '';
@@ -51,7 +47,6 @@ export function createLegacyCaptureDialog({ document, escapeHtml }: LegacyCaptur
     return {
       title: query<HTMLInputElement>('#captureName')?.value || '',
       type: query<HTMLSelectElement>('#captureType')?.value || '',
-      category: query<HTMLSelectElement>('#captureCat')?.value || '',
       source: query<HTMLInputElement>('#captureSource')?.value || '',
       body: query<HTMLElement>('#capturePad')?.innerHTML || '',
     };

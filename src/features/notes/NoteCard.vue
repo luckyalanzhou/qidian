@@ -11,7 +11,7 @@ const shellActions = useWorkspaceShellActionsStore();
 <template>
   <article class="note-card">
     <div class="note-card-open" :data-open="note.id" role="button" tabindex="0" :aria-label="`打开笔记：${note.title || '无标题笔记'}`" @click.stop="navigationActions.execute({ type: 'open-note', id: note.id })">
-      <div class="note-kicker"><span class="type-dot" :class="note.type" />{{ note.typeName }} <span>·</span> {{ note.category }}</div>
+      <div class="note-kicker"><span class="type-dot" :class="note.type" />{{ note.typeName }}</div>
       <span v-if="note.pinned" class="pin-top" title="已收藏">★</span>
       <h3>{{ note.title || '无标题笔记' }}</h3>
       <p>{{ note.description || '空白笔记，点击开始编辑。' }}</p>

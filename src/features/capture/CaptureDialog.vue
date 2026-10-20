@@ -61,20 +61,10 @@ async function submit() {
       <div class="dialog-body">
         <label class="form-label" for="captureName">笔记标题</label>
         <input id="captureName" v-model="store.title" class="form-text" placeholder="例如：一篇值得收藏的网页教程" :disabled="store.saving">
-        <div class="dialog-row">
-          <div>
-            <label class="form-label" for="captureType">内容类型</label>
-            <select id="captureType" v-model="store.type" class="form-text" :disabled="store.saving">
-              <option v-for="item in store.types" :key="item.id" :value="item.id">{{ item.name }}</option>
-            </select>
-          </div>
-          <div>
-            <label class="form-label" for="captureCat">归属分类</label>
-            <select id="captureCat" v-model="store.category" class="form-text" :disabled="store.saving">
-              <option v-for="item in store.categories" :key="item" :value="item">{{ item }}</option>
-            </select>
-          </div>
-        </div>
+        <label class="form-label" for="captureType">内容类型</label>
+        <select id="captureType" v-model="store.type" class="form-text" :disabled="store.saving">
+          <option v-for="item in store.types" :key="item.id" :value="item.id">{{ item.name }}</option>
+        </select>
         <label class="form-label" for="captureSource">来源网址（可选）</label>
         <input id="captureSource" v-model="store.source" class="form-text" placeholder="https://..." :disabled="store.saving">
         <label class="form-label" for="capturePad">内容 <span style="font-weight:400">· 可粘贴网页、纯文本或截图；支持网页格式、Markdown 和纯文本</span></label>

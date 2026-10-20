@@ -44,16 +44,8 @@ export function createRemoteEditorRefresh(dependencies: RemoteEditorRefreshDepen
       if (field) field.value = value;
     }
 
-    const category = dependencies.document.getElementById('editCategory') as HTMLSelectElement | null;
-    if (category) {
-      if (!Array.from(category.options).some(option => option.value === note.category)) {
-        const option = dependencies.document.createElement('option');
-        option.value = note.category || '';
-        option.textContent = note.category || '';
-        category.append(option);
-      }
-      category.value = note.category || '';
-    }
+    const category = dependencies.document.getElementById('editCategory') as HTMLInputElement | null;
+    if (category) category.value = note.category || '未分类';
 
     const editor = dependencies.getEditor();
     const html = dependencies.cleanBody(note.body || '');

@@ -36,7 +36,6 @@ export function createReaderSnapshot(options: ReaderSnapshotOptions): ReaderSnap
     noteId: note.id,
     title: note.title || '',
     typeLabel: options.typeLabel(note.type),
-    category: note.category || '未分类',
     updatedLabel: options.formatDate(note.updated),
     createdLabel: options.formatDate(note.created),
     readingMinutes: Math.max(1, Math.ceil((cjkCount + latinWordCount * 5) / 350)),

@@ -3,7 +3,6 @@ export type NoteCardItem = {
   title: string;
   type: string;
   typeName: string;
-  category: string;
   tags: string[];
   description: string;
   updatedLabel: string;

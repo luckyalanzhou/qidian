@@ -12,7 +12,6 @@ export type WorkspaceShellActionDependencies = {
   closeSlashMenu: () => void;
   toggleNoteTypes: () => void;
   addNoteType: () => void;
-  addCategory: () => void;
   openTypeDialog: (mode: 'edit' | 'delete', id: string) => void;
   noteTypeCount: () => number;
   toast: (message: string) => void;
@@ -32,7 +31,6 @@ export function createWorkspaceShellActions(dependencies: WorkspaceShellActionDe
       case 'sign-out': dependencies.signOut(); return true;
       case 'toggle-note-types': dependencies.toggleNoteTypes(); return true;
       case 'add-note-type': dependencies.addNoteType(); return true;
-      case 'add-category': dependencies.addCategory(); return true;
       case 'edit-note-type': dependencies.openTypeDialog('edit', command.id); return true;
       case 'delete-note-type':
         if (dependencies.noteTypeCount() < 2 && command.id === 'note') {

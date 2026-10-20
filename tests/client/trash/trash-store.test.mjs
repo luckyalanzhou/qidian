@@ -34,7 +34,7 @@ test('trash view follows the active vault and updates after transactional change
   assert.deepEqual(trash.snapshot.entries.map(entry => entry.id), [bookmarkEntry.id, noteEntry.id], 'entries sort newest first');
   assert.equal(trash.snapshot.entries[0].detail, 'https://example.test');
   assert.equal(trash.snapshot.entries[1].title, '已删除的笔记');
-  assert.match(trash.snapshot.entries[1].detail, /网络 · WAN/);
+  assert.equal(trash.snapshot.entries[1].detail, '#WAN', 'trash metadata keeps tags without exposing the removed category');
   assert.match(trash.snapshot.entries[1].expiresLabel, /天后清理/);
 
   const actions = [];

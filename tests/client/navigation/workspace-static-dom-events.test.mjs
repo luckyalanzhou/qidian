@@ -7,12 +7,10 @@ test('workspace static DOM events route paste, dialog keys, and overlay dismissa
   const dom = new JSDOM(`
     <div id="slashMenu"></div>
     <div id="typeDialogBody"><input id="typeNameInput"></div>
-    <input id="categoryNameInput">
     <div id="capturePad"></div>
     <div id="createOverlay" class="open"><span id="createChild"></span></div>
     <div id="captureOverlay" class="open"><span id="captureChild"></span></div>
     <div id="typeOverlay" class="open"></div>
-    <div id="categoryOverlay" class="open"></div>
   `);
   const { document, Event, KeyboardEvent, MouseEvent } = dom.window;
   const calls = [];
@@ -20,7 +18,6 @@ test('workspace static DOM events route paste, dialog keys, and overlay dismissa
     closeCapture: () => calls.push('close-capture'),
     closeCreateMenu: () => calls.push('close-create-menu'),
     handleCapturePaste: () => calls.push('paste'),
-    saveCategory: () => calls.push('save-category'),
     saveNoteType: () => calls.push('save-type')
   });
 
@@ -36,22 +33,13 @@ test('workspace static DOM events route paste, dialog keys, and overlay dismissa
   const typeEnter = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true });
   document.querySelector('#typeNameInput').dispatchEvent(typeEnter);
   assert.equal(typeEnter.defaultPrevented, true);
-  const categoryEnter = new KeyboardEvent('keydown', { key: 'Enter', cancelable: true });
-  document.querySelector('#categoryNameInput').dispatchEvent(categoryEnter);
-  assert.equal(categoryEnter.defaultPrevented, true);
-  const categoryEscape = new KeyboardEvent('keydown', { key: 'Escape' });
-  document.querySelector('#categoryNameInput').dispatchEvent(categoryEscape);
-  assert.equal(document.querySelector('#categoryOverlay').classList.contains('open'), false);
-
   document.querySelector('#capturePad').dispatchEvent(new Event('paste'));
 
   document.querySelector('#captureChild').dispatchEvent(new MouseEvent('click', { bubbles: true }));
-  assert.deepEqual(calls, ['close-create-menu', 'save-type', 'save-category', 'paste']);
+  assert.deepEqual(calls, ['close-create-menu', 'save-type', 'paste']);
   document.querySelector('#captureOverlay').dispatchEvent(new MouseEvent('click', { bubbles: true }));
   document.querySelector('#typeOverlay').dispatchEvent(new MouseEvent('click', { bubbles: true }));
-  document.querySelector('#categoryOverlay').dispatchEvent(new MouseEvent('click', { bubbles: true }));
   assert.equal(document.querySelector('#typeOverlay').classList.contains('open'), false);
-  assert.equal(document.querySelector('#categoryOverlay').classList.contains('open'), false);
   assert.deepEqual(calls.slice(-1), ['close-capture']);
 
   unmount();

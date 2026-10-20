@@ -58,15 +58,16 @@ test('draft view keeps authored drafts and pending published edits, excluding em
   assert.deepEqual(result.map(item => item.id), ['recent-draft', 'pending']);
 });
 
-test('category, type, pinned, recent and query filters compose without mutating the source array', () => {
+test('type, pinned, recent and query filters compose without consulting legacy categories', () => {
   const notes = [
     note('a', { category: '开发', type: 'command', title: 'Alpha', pinned: true, updated: 1 }),
     note('b', { category: '阅读', type: 'note', title: 'Beta', pinned: true, updated: 4 }),
     note('c', { category: '开发', type: 'note', title: 'Gamma', updated: 8 })
   ];
   const common = { hasDraftContent, bodyText };
-  assert.deepEqual(selectNotes(notes, { ...common, active: '开发', typeFilter: 'command' }).map(item => item.id), ['a']);
+  assert.deepEqual(selectNotes(notes, { ...common, active: 'all', typeFilter: 'command' }).map(item => item.id), ['a']);
   assert.deepEqual(selectNotes(notes, { ...common, active: 'pinned', typeFilter: 'all' }).map(item => item.id), ['b', 'a']);
   assert.deepEqual(selectNotes(notes, { ...common, active: 'recent', typeFilter: 'all' }).map(item => item.id), ['c', 'b', 'a']);
   assert.deepEqual(selectNotes(notes, { ...common, active: 'all', typeFilter: 'all', query: ' BETA ' }).map(item => item.id), ['b']);
+  assert.deepEqual(selectNotes(notes, { ...common, active: 'all', typeFilter: 'all', query: '开发' }).map(item => item.id), [], 'hidden legacy category values are not searchable');
 });

@@ -13,7 +13,6 @@ import EditorPage from '../features/editor/EditorPage.vue';
 import SlashMenu from '../features/editor/SlashMenu.vue';
 import NotesListPage from '../features/notes/NotesListPage.vue';
 import NoteTypeDialog from '../features/notes/NoteTypeDialog.vue';
-import CategoryDialog from '../features/categories/CategoryDialog.vue';
 import CaptureDialog from '../features/capture/CaptureDialog.vue';
 import CreateMenuDialog from '../features/create-menu/CreateMenuDialog.vue';
 import RecycleBinPage from '../features/trash/RecycleBinPage.vue';
@@ -45,7 +44,6 @@ const backupHistoryStore = useBackupHistoryStore();
   <DashboardPage />
   <NotesListPage />
   <NoteTypeDialog />
-  <CategoryDialog />
   <CaptureDialog />
   <CreateMenuDialog />
   <RecycleBinPage />

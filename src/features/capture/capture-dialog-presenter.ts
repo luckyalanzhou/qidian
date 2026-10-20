@@ -5,7 +5,6 @@ export type CaptureDialogPresenterOptions = { restoreFocusOnClose?: boolean };
 type VueDialog = {
   open: (configuration: {
     types: CaptureDialogPresenterType[];
-    categories: string[];
     pasteMode: string;
     restoreFocusOnClose?: boolean;
   }) => void;
@@ -16,7 +15,6 @@ type LegacyDialog = {
   open: (configuration: {
     types: CaptureDialogPresenterType[];
     defaultType: string;
-    categoryOptions: string;
     pasteMode: string;
   }) => void;
   close: () => void;
@@ -26,9 +24,7 @@ type CaptureDialogPresenterDependencies = {
   closeMenu: () => void;
   vueMounted: boolean;
   getTypes: () => CaptureDialogPresenterType[];
-  getCategories: () => string[];
   getPasteMode: () => string;
-  getLegacyCategoryOptions: () => string;
   vueDialog: VueDialog;
   legacyDialog: LegacyDialog | null;
 };
@@ -42,7 +38,6 @@ export function createCaptureDialogPresenter(dependencies: CaptureDialogPresente
     if (dependencies.vueMounted) {
       dependencies.vueDialog.open({
         types,
-        categories: dependencies.getCategories(),
         pasteMode,
         restoreFocusOnClose: options.restoreFocusOnClose,
       });
@@ -53,7 +48,6 @@ export function createCaptureDialogPresenter(dependencies: CaptureDialogPresente
     dependencies.legacyDialog?.open({
       types,
       defaultType,
-      categoryOptions: dependencies.getLegacyCategoryOptions(),
       pasteMode,
     });
   }

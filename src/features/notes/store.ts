@@ -55,8 +55,9 @@ export const useNoteListStore = defineStore('note-list', () => {
     const configured = dependencies;
     if (!vault.ready || !value || !configured) return emptySnapshot();
 
+    const activeView = ['all', 'recent', 'pinned', 'drafts'].includes(navigation.active) ? navigation.active : 'all';
     const filtered = selectNotes(value.notes || [], {
-      active: navigation.active,
+      active: activeView,
       typeFilter: navigation.typeFilter,
       query: navigation.noteQuery,
       hasDraftContent: configured.hasDraftContent,
@@ -64,21 +65,20 @@ export const useNoteListStore = defineStore('note-list', () => {
     });
     const heading = navigation.typeFilter !== 'all'
       ? configured.typeName(navigation.typeFilter)
-      : navigation.active === 'all' ? '全部笔记'
-        : navigation.active === 'recent' ? '最近编辑'
-          : navigation.active === 'pinned' ? '重要收藏'
-            : navigation.active === 'drafts' ? '草稿箱'
-              : navigation.active;
+      : activeView === 'all' ? '全部笔记'
+        : activeView === 'recent' ? '最近编辑'
+          : activeView === 'pinned' ? '重要收藏'
+            : '草稿箱';
 
     return {
       heading,
       resultCount: filtered.length,
       query: navigation.noteQuery,
-      active: navigation.active,
+      active: activeView,
       typeFilter: navigation.typeFilter,
       noteTypes: (value.noteTypes || []).map((type: NoteType) => ({ id: type.id, name: configured.displayTypeName(type) })),
       notes: filtered.map(configured.noteCard),
-      emptyMessage: navigation.active === 'drafts' ? '暂无草稿。可以创建一条笔记。' : '还没有笔记，先写下第一条。'
+      emptyMessage: activeView === 'drafts' ? '暂无草稿。可以创建一条笔记。' : '还没有笔记，先写下第一条。'
     };
   });
 

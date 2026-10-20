@@ -657,7 +657,7 @@ test('quick capture waits for the Vault transaction before opening the saved dra
   w.document.querySelector('#quickCapture').click();
   w.document.querySelector('#captureName').value='网络配置摘录';
   w.document.querySelector('#captureType').value='clip';
-  w.document.querySelector('#captureCat').value='开发';
+  assert.equal(w.document.querySelector('#captureCat'), null, 'quick capture has no category field');
   w.document.querySelector('#captureSource').value='https://example.com/guide';
   w.document.querySelector('#capturePad').innerHTML='<p>保留重点</p><script>unsafe()</script>';
   w.document.querySelector('#captureSave').click();
@@ -666,7 +666,7 @@ test('quick capture waits for the Vault transaction before opening the saved dra
   const note=saves.at(-1).notes[0];
   assert.equal(note.title,'网络配置摘录');
   assert.equal(note.type,'clip');
-  assert.equal(note.category,'开发');
+  assert.equal(note.category,'未分类', 'new notes retain only the hidden legacy default');
   assert.equal(note.source,'https://example.com/guide');
   assert.equal(note.body,'<p>保留重点</p>');
   assert.equal(note.status,'draft');
@@ -958,11 +958,8 @@ test('callout toolbar removes the whole hint block only when the cursor is insid
 test('sidebar note types collapse preference is saved in the account vault', async () => {
   const { dom, w, saves } = await mount();
   let toggle = w.document.querySelector('#toggleNoteTypes');
-  const categoryHeading = w.document.querySelector('#addCategory').parentElement;
   assert.ok(toggle.closest('.side-heading'));
-  assert.ok(categoryHeading.classList.contains('side-heading'));
-  assert.ok(categoryHeading.querySelector('.side-heading-title'));
-  assert.equal(categoryHeading.querySelector('#addCategory').type,'button');
+  assert.equal(w.document.querySelector('#addCategory'), null, 'the category section is removed');
   assert.equal(toggle.getAttribute('aria-expanded'), 'true');
   assert.equal(toggle.querySelector('svg')?.getAttribute('viewBox'), '0 0 24 24');
   assert.equal(toggle.querySelector('span')?.textContent, '笔记类型', 'the section label should be part of the toggle button');
@@ -1139,7 +1136,7 @@ test('local note search and returning from a note preserve the current list scop
 
 test('editor groups secondary tools and metadata without losing code, table or formatting commands',async()=>{
  const {dom,w}=await mount();w.document.querySelector('#newSide').click();w.document.querySelector('[data-create-kind="note"]').click();
- assert.ok(w.document.querySelector('.editor-properties #editCategory'));assert.ok(w.document.querySelector('.editor-extra-tools [data-insert="callout"]'));
+ const categoryField=w.document.querySelector('.editor-properties #editCategory');assert.ok(!categoryField||categoryField.type==='hidden','legacy category storage never appears as an editable field');assert.ok(w.document.querySelector('.editor-extra-tools [data-insert="callout"]'));
  assert.ok(w.document.querySelector('.editor-extra-tools [data-fmt="strikeThrough"]'));assert.ok(w.document.querySelector('#editorToolbar>[data-insert="code"]'));
  assert.ok(w.document.querySelector('#editorToolbar>[data-insert="table"]'));assert.ok(w.document.querySelector('.document-more #exportHtml'));dom.window.close();
  const styles=await readFile(new URL('../../../src/styles.css',import.meta.url),'utf8');

@@ -4,7 +4,6 @@ import type { VaultMutationPort } from '../vault/mutation.ts';
 export type CaptureInput = {
   title: string;
   type: string;
-  category: string;
   source: string;
   body: string;
 };
@@ -29,7 +28,7 @@ export function createCaptureFlow(dependencies: Dependencies) {
     const note = {
       id: (dependencies.createId || (value => `n${value}`))(timestamp),
       title: title || text.slice(0, 35) || '新收藏',
-      category: input.category || '未分类',
+      category: '未分类',
       type: input.type,
       tags: [],
       body,

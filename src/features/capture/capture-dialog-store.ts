@@ -5,7 +5,6 @@ import type { CaptureInput } from './capture-flow.ts';
 export type CaptureTypeOption = { id: string; name: string };
 type CaptureDialogOptions = {
   types: CaptureTypeOption[];
-  categories: string[];
   pasteMode: string;
   restoreFocusOnClose?: boolean;
 };
@@ -21,11 +20,9 @@ export const useCaptureDialogStore = defineStore('capture-dialog', () => {
   const message = ref('');
   const title = ref('');
   const type = ref('clip');
-  const category = ref('网页摘录');
   const source = ref('');
   const pasteMode = ref('rich');
   const types = ref<CaptureTypeOption[]>([]);
-  const categories = ref<string[]>([]);
   let saveHandler: SaveHandler = () => undefined;
   let pasteHandler: PasteHandler = () => undefined;
 
@@ -34,9 +31,7 @@ export const useCaptureDialogStore = defineStore('capture-dialog', () => {
     source.value = '';
     message.value = '';
     types.value = [...options.types];
-    categories.value = [...new Set(['未分类', ...options.categories, '网页摘录'])];
     type.value = options.types.find(item => item.id === 'clip')?.id || options.types[0]?.id || 'note';
-    category.value = '网页摘录';
     pasteMode.value = pasteModes.has(options.pasteMode) ? options.pasteMode : 'rich';
     restoreFocusOnClose.value = options.restoreFocusOnClose !== false;
     visible.value = true;
@@ -68,7 +63,6 @@ export const useCaptureDialogStore = defineStore('capture-dialog', () => {
       await saveHandler({
         title: title.value,
         type: type.value,
-        category: category.value,
         source: source.value,
         body
       });
@@ -82,5 +76,5 @@ export const useCaptureDialogStore = defineStore('capture-dialog', () => {
     }
   }
 
-  return { visible, saving, restoreFocusOnClose, message, title, type, category, source, pasteMode, types, categories, open, close, bindSave, bindPasteHandler, handlePaste, submit };
+  return { visible, saving, restoreFocusOnClose, message, title, type, source, pasteMode, types, open, close, bindSave, bindPasteHandler, handlePaste, submit };
 });

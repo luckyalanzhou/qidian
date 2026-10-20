@@ -4,7 +4,7 @@ import { JSDOM } from 'jsdom';
 import { createLegacyCaptureDialog } from '../../../src/compat/capture/legacy-capture-dialog.ts';
 
 const captureForm = `<div class="overlay" id="captureOverlay">
-  <input id="captureName"><select id="captureType"></select><select id="captureCat"></select>
+  <input id="captureName"><select id="captureType"></select>
   <input id="captureSource"><div id="capturePad" contenteditable="true"></div>
   <select id="capturePasteMode"><option value="rich">rich</option><option value="plain">plain</option></select>
 </div>`;
@@ -25,7 +25,6 @@ test('legacy capture dialog resets each draft field and selects the requested ty
   dialog.open({
     types: [{ id: 'clip', name: '网页摘录' }, { id: 'custom', name: '<研发>' }],
     defaultType: 'clip',
-    categoryOptions: '<option value="网页摘录" selected>网页摘录</option>',
     pasteMode: 'plain',
   });
 
@@ -33,7 +32,6 @@ test('legacy capture dialog resets each draft field and selects the requested ty
   assert.equal(document.querySelector('#captureType').value, 'clip');
   assert.equal(document.querySelector('#captureType option[value="custom"]').textContent, '<研发>');
   assert.equal(document.querySelector('#captureType option[value="custom"]').hasAttribute('onmouseover'), false);
-  assert.equal(document.querySelector('#captureCat').value, '网页摘录');
   assert.equal(document.querySelector('#captureName').value, '');
   assert.equal(document.querySelector('#captureSource').value, '');
   assert.equal(document.querySelector('#capturePad').innerHTML, '');
@@ -46,15 +44,14 @@ test('legacy capture dialog reads the active form values and closes without pers
   const dom = new JSDOM(`<!doctype html><html><body>${captureForm}</body></html>`);
   const document = dom.window.document;
   const dialog = createLegacyCaptureDialog({ document, escapeHtml: value => String(value) });
-  dialog.open({ types: [{ id: 'clip', name: '网页摘录' }], defaultType: 'clip', categoryOptions: '<option value="开发">开发</option>', pasteMode: 'rich' });
+  dialog.open({ types: [{ id: 'clip', name: '网页摘录' }], defaultType: 'clip', pasteMode: 'rich' });
   document.querySelector('#captureName').value = '网络说明';
   document.querySelector('#captureType').value = 'clip';
-  document.querySelector('#captureCat').value = '开发';
   document.querySelector('#captureSource').value = ' https://example.com/guide ';
   document.querySelector('#capturePad').innerHTML = '<p>保存正文</p>';
 
   assert.deepEqual(dialog.readInput(), {
-    title: '网络说明', type: 'clip', category: '开发',
+    title: '网络说明', type: 'clip',
     source: ' https://example.com/guide ', body: '<p>保存正文</p>',
   });
   dialog.close();

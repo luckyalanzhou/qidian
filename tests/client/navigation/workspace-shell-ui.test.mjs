@@ -49,7 +49,7 @@ test('Vue breadcrumb derives its title from the active workspace feature stores'
   noteList.configure({
     hasDraftContent: () => true,
     bodyText: body => body,
-    noteCard: note => ({ id: note.id, title: note.title, type: note.type, typeName: note.type, category: note.category, tags: note.tags, description: '', updatedLabel: '', pinned: false }),
+    noteCard: note => ({ id: note.id, title: note.title, type: note.type, typeName: note.type, tags: note.tags, description: '', updatedLabel: '', pinned: false }),
     typeName: id => id,
     displayTypeName: type => type.name
   });

@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 const note = (overrides = {}) => ({ id: 'note', title: '笔记', type: 'note', category: '网络', tags: [], body: '<p>内容</p>', source: '', created: 1, updated: 1, pinned: false, ...overrides });
 
-test('sidebar facets derive counts and categories directly from the active vault', async t => {
+test('sidebar facets derive counts and note types directly from the active vault', async t => {
   const server = await createServer({
     configFile: false,
     root: fileURLToPath(new URL('../../../', import.meta.url)),
@@ -48,12 +48,11 @@ test('sidebar facets derive counts and categories directly from the active vault
   });
 
   assert.deepEqual(sidebar.snapshot.counts, { all: 2, recent: 2, pinned: 1, drafts: 1, bookmarks: 3, trash: 1 });
-  assert.deepEqual(sidebar.snapshot.categoryCounts, { 网络: 1, 服务: 1 });
   assert.deepEqual(sidebar.snapshot.noteTypes, [
     { id: 'note', name: '普通笔记', count: 1 },
     { id: 'command', name: '命令速查', count: 1 }
   ]);
-  assert.deepEqual(sidebar.snapshot.categories, ['网络', '服务']);
+  assert.equal(Object.hasOwn(sidebar.snapshot, 'categories'), false, 'note categories are not projected into the sidebar UI');
   assert.equal(sidebar.snapshot.typesExpanded, false);
 
   navigation.page = 'home';
@@ -64,7 +63,6 @@ test('sidebar facets derive counts and categories directly from the active vault
     value.noteTypesExpanded = true;
   });
   assert.equal(sidebar.snapshot.counts.all, 3);
-  assert.equal(sidebar.snapshot.categoryCounts['网络'], 2);
   assert.equal(sidebar.snapshot.noteTypes[1].count, 2);
   assert.equal(sidebar.snapshot.typesExpanded, true);
 });

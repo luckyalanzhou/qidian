@@ -13,8 +13,6 @@ type WorkspaceContentDependencies = {
   exportCurrentNote: () => void;
   chooseImage: () => void;
   saveCapture: () => Promise<void> | void;
-  addCategory: () => void;
-  saveCategory: () => Promise<void> | void;
   addNoteType: () => void;
   saveNoteType: () => Promise<void> | void;
   downloadBackup: (revision: string) => void;
@@ -49,8 +47,6 @@ export function createWorkspaceContentEvents(dependencies: WorkspaceContentDepen
     else if (closest(target, '#exportHtml')) dependencies.exportCurrentNote();
     else if (closest(target, '#addImgButton')) dependencies.chooseImage();
     else if (closest(target, '#captureSave')) return Promise.resolve(dependencies.saveCapture()).then(() => true);
-    else if (closest(target, '#addCategory')) dependencies.addCategory();
-    else if (closest(target, '#categoryDialogConfirm')) return Promise.resolve(dependencies.saveCategory()).then(() => true);
     else if (closest(target, '#addNoteType')) dependencies.addNoteType();
     else if (closest(target, '#typeDialogConfirm')) return Promise.resolve(dependencies.saveNoteType()).then(() => true);
     else {

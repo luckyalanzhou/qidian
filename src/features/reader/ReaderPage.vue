@@ -89,7 +89,6 @@ onBeforeUnmount(() => {
           </button>
           <div class="doc-meta">
             <span class="pill">{{ reader.snapshot.typeLabel }}</span>
-            <span class="pill">{{ reader.snapshot.category }}</span>
             <span class="doc-date">更新于 {{ reader.snapshot.updatedLabel }} · 阅读约 {{ reader.snapshot.readingMinutes }} 分钟</span>
           </div>
           <h1 class="doc-title">{{ reader.snapshot.title }}</h1>

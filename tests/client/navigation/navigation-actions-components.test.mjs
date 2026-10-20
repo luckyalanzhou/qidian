@@ -28,7 +28,6 @@ test('Vue note list and cards dispatch navigation commands directly without docu
         "export { default as DashboardPage } from './src/features/dashboard/DashboardPage.vue';",
         "export { default as EditorPage } from './src/features/editor/EditorPage.vue';",
         "export { default as NoteTypeDialog } from './src/features/notes/NoteTypeDialog.vue';",
-        "export { default as CategoryDialog } from './src/features/categories/CategoryDialog.vue';",
         "export { default as CaptureDialog } from './src/features/capture/CaptureDialog.vue';",
         "export { default as CreateMenuDialog } from './src/features/create-menu/CreateMenuDialog.vue';",
         "export { default as SidebarNavigation } from './src/features/navigation/SidebarNavigation.vue';",
@@ -47,7 +46,6 @@ test('Vue note list and cards dispatch navigation commands directly without docu
         "export { useEditorStore } from './src/features/editor/store.ts';",
         "export { useEditorPageActionsStore } from './src/features/editor/editor-page-actions-store.ts';",
         "export { useNoteTypeDialogStore } from './src/features/notes/type-dialog-store.ts';",
-        "export { useCategoryDialogStore } from './src/features/categories/category-dialog-store.ts';",
         "export { useCaptureDialogStore } from './src/features/capture/capture-dialog-store.ts';",
         "export { useCreateMenuStore } from './src/features/create-menu/store.ts';",
         "export { useSidebarStore } from './src/features/navigation/sidebar-store.ts';",
@@ -107,7 +105,7 @@ test('Vue note list and cards dispatch navigation commands directly without docu
     import('pinia'),
     import(pathToFileURL(bundlePath).href)
   ]);
-  const { NotesListPage, BookmarkPage, DashboardPage, EditorPage, ReaderPage, AppSettings, ProfileSettings, BackupHistoryDialog, NoteTypeDialog, CategoryDialog, CaptureDialog, CreateMenuDialog, SidebarNavigation, MobileNavigation, WorkspaceTopbarMenus, GlobalSearchDialog, useNavigationActionsStore, useNavigationStore, useNoteListStore, useDashboardStore, useBookmarkStore, useEditorStore, useEditorPageActionsStore, useNoteTypeDialogStore, useCategoryDialogStore, useCaptureDialogStore, useCreateMenuStore, useSidebarStore, useWorkspaceShellActionsStore, useWorkspaceShellStore, useReaderStore, useReaderActionsStore, useVaultStore, useAppSettingsStore, useProfileSettingsStore, useBackupHistoryStore, useGlobalSearchStore } = components;
+  const { NotesListPage, BookmarkPage, DashboardPage, EditorPage, ReaderPage, AppSettings, ProfileSettings, BackupHistoryDialog, NoteTypeDialog, CaptureDialog, CreateMenuDialog, SidebarNavigation, MobileNavigation, WorkspaceTopbarMenus, GlobalSearchDialog, useNavigationActionsStore, useNavigationStore, useNoteListStore, useDashboardStore, useBookmarkStore, useEditorStore, useEditorPageActionsStore, useNoteTypeDialogStore, useCaptureDialogStore, useCreateMenuStore, useSidebarStore, useWorkspaceShellActionsStore, useWorkspaceShellStore, useReaderStore, useReaderActionsStore, useVaultStore, useAppSettingsStore, useProfileSettingsStore, useBackupHistoryStore, useGlobalSearchStore } = components;
   const pinia = createPinia();
   const vault = useVaultStore(pinia);
   const navigation = useNavigationStore(pinia);
@@ -134,7 +132,6 @@ test('Vue note list and cards dispatch navigation commands directly without docu
     formBlurred: () => { editorFormBlurs += 1; }
   });
   const noteTypeDialog = useNoteTypeDialogStore(pinia);
-  const categoryDialog = useCategoryDialogStore(pinia);
   const captureDialog = useCaptureDialogStore(pinia);
   const createMenu = useCreateMenuStore(pinia);
   const sidebar = useSidebarStore(pinia);
@@ -184,14 +181,14 @@ test('Vue note list and cards dispatch navigation commands directly without docu
     typeName: () => '普通笔记',
     displayTypeName: type => type.name,
     noteCard: value => ({
-      id: value.id, title: value.title, type: value.type, typeName: '普通笔记', category: value.category,
+      id: value.id, title: value.title, type: value.type, typeName: '普通笔记',
       tags: value.tags, description: '网关配置', updatedLabel: '今天', pinned: false
     })
   });
   dashboard.configure({
     isDraft: () => false,
     publishedView: value => value,
-    noteCard: value => ({ id: value.id, title: value.title, type: value.type, typeName: '普通笔记', category: value.category, tags: value.tags, description: '网关配置', updatedLabel: '今天', pinned: false }),
+    noteCard: value => ({ id: value.id, title: value.title, type: value.type, typeName: '普通笔记', tags: value.tags, description: '网关配置', updatedLabel: '今天', pinned: false }),
     isSafeUrl: value => /^https?:\/\//.test(value)
   });
   let dashboardPersistCalls = 0;
@@ -208,18 +205,12 @@ test('Vue note list and cards dispatch navigation commands directly without docu
     shellCommands.push(command);
     shell.closeThemeMenu();
     shell.closeAccountMenu();
-    if (command.type === 'add-category') categoryDialog.open();
     if (command.type === 'toggle-theme-menu') shell.toggleThemeMenu();
     if (command.type === 'toggle-account-menu') shell.toggleAccountMenu();
     if (command.type === 'apply-theme') { shell.setThemeState(command.theme, command.theme === 'dark'); shell.closeThemeMenu(); }
     return true;
   });
   readerActions.bind(command => { readerCommands.push(command); });
-  const categorySubmissions = [];
-  categoryDialog.bindSave(async name => {
-    if (!name.trim()) throw new Error('请输入分类名称');
-    categorySubmissions.push(name.trim());
-  });
   app = createApp({
     render() {
       return h(Fragment, null, [
@@ -233,7 +224,6 @@ test('Vue note list and cards dispatch navigation commands directly without docu
         h(ReaderPage),
         h(EditorPage),
         h(NoteTypeDialog),
-        h(CategoryDialog),
         h(CaptureDialog),
         h(CreateMenuDialog),
         h(AppSettings),
@@ -353,8 +343,13 @@ test('Vue note list and cards dispatch navigation commands directly without docu
 
   let pickerClicks = 0;
   const bookmarkFileInput = dom.window.document.querySelector('#dashboardHost .bookmark-page input[type="file"]');
+  assert.ok(bookmarkFileInput.classList.contains('visually-hidden'), 'the native browser picker stays visually hidden');
+  assert.equal(bookmarkFileInput.getAttribute('accept'), '.html,.htm,text/html', 'bookmark import accepts browser-exported HTML only');
+  const styles = await readFile(new URL('../../../src/styles.css', import.meta.url), 'utf8');
+  assert.match(styles, /\.visually-hidden\{position:absolute!important;width:1px!important;height:1px!important/);
   bookmarkFileInput.click = () => { pickerClicks++; };
   dom.window.document.querySelector('#dashboardHost .bookmark-tools summary').click();
+  bookmarkCommands.length = 0;
   [...dom.window.document.querySelectorAll('#dashboardHost .bookmark-tools button')].find(button => button.textContent.includes('导入书签')).click();
   await nextTick();
   assert.equal(pickerClicks, 1, 'the import action opens the Vue-owned file picker');
@@ -408,14 +403,11 @@ test('Vue note list and cards dispatch navigation commands directly without docu
   dom.window.document.querySelector('#addNoteType').click();
   dom.window.document.querySelector('#sideTypes [data-type-edit="note"]').click();
   dom.window.document.querySelector('#sideTypes [data-type-delete="command"]').click();
-  dom.window.document.querySelector('#addCategory').click();
-  await nextTick();
-  assert.equal(categoryDialog.visible, true);
-  assert.ok(dom.window.document.querySelector('#categoryFeatureOverlay form[role="dialog"]'));
+  assert.equal(dom.window.document.querySelector('#addCategory'), null, 'category creation is no longer part of the sidebar');
+  assert.equal(dom.window.document.querySelector('#categoryFeatureOverlay'), null, 'the category dialog is no longer mounted');
   dom.window.document.querySelector('#qidianSidebarIsland [data-dashboard]').click();
   dom.window.document.querySelector('#qidianSidebarIsland [data-nav="recent"]').click();
   dom.window.document.querySelector('#qidianSidebarIsland [data-type-nav="note"]').click();
-  dom.window.document.querySelector('#qidianSidebarIsland [data-nav="网络"]').click();
   dom.window.document.querySelector('#mobileHome').click();
   dom.window.document.querySelector('#mobileCats').click();
   dom.window.document.querySelector('#mobileNew').click();
@@ -430,7 +422,6 @@ test('Vue note list and cards dispatch navigation commands directly without docu
     { type: 'dashboard' },
     { type: 'home', category: 'recent' },
     { type: 'note-type', id: 'note' },
-    { type: 'home', category: '网络' },
     { type: 'dashboard' },
     { type: 'home', category: 'all' },
     { type: 'open-create-menu' },
@@ -445,7 +436,6 @@ test('Vue note list and cards dispatch navigation commands directly without docu
     { type: 'add-note-type' },
     { type: 'edit-note-type', id: 'note' },
     { type: 'delete-note-type', id: 'command' },
-    { type: 'add-category' },
     { type: 'delete-note', id: 'note-1' }
   ]);
   assert.equal(bubbledClicks, 0, 'these Vue actions do not reach the legacy document click router');
@@ -530,9 +520,7 @@ test('Vue note list and cards dispatch navigation commands directly without docu
   const editorType = dom.window.document.querySelector('#editType');
   editorType.value = 'command';
   editorType.dispatchEvent(new dom.window.Event('change', { bubbles: true }));
-  const editorCategory = dom.window.document.querySelector('#editCategory');
-  editorCategory.value = '网络';
-  editorCategory.dispatchEvent(new dom.window.Event('change', { bubbles: true }));
+  assert.equal(dom.window.document.querySelector('#editCategory'), null, 'category is not an editable field');
   const editorTags = dom.window.document.querySelector('#editTags');
   editorTags.value = 'OpenWrt, Docker';
   editorTags.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
@@ -556,7 +544,7 @@ test('Vue note list and cards dispatch navigation commands directly without docu
   editorTitle.dispatchEvent(new dom.window.Event('blur'));
   await nextTick();
   assert.deepEqual(editorData.form, { title: 'Vue 表单状态', type: 'command', category: '网络', tags: 'OpenWrt, Docker', source: 'https://example.com' });
-  assert.equal(editorFormChanges.length, 5);
+  assert.equal(editorFormChanges.length, 4);
   assert.deepEqual(editorFormChanges.at(-1), editorData.form, 'the form-change boundary observes v-model values before saving');
   assert.equal(editorFormBlurs, 1, 'leaving a metadata field flushes the editor save');
 
@@ -586,19 +574,6 @@ test('Vue note list and cards dispatch navigation commands directly without docu
   assert.deepEqual(dialogSubmissions[1], { mode: 'delete', id: 'reading', targetId: 'task' });
   assert.equal(bubbledClicks, clicksBeforeDialogActions, 'the Vue dialog consumes its confirmation instead of triggering the legacy click router');
 
-  dom.window.document.querySelector('#categoryFeatureOverlay form').dispatchEvent(new dom.window.Event('submit', { bubbles: true, cancelable: true }));
-  await new Promise(resolve => setImmediate(resolve));
-  await nextTick();
-  assert.equal(dom.window.document.querySelector('#categoryFeatureMessage').textContent, '请输入分类名称');
-  const categoryName = dom.window.document.querySelector('#categoryFeatureName');
-  categoryName.value = '系统维护';
-  categoryName.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
-  dom.window.document.querySelector('#categoryFeatureOverlay [type="submit"]').click();
-  await new Promise(resolve => setImmediate(resolve));
-  await nextTick();
-  assert.deepEqual(categorySubmissions, ['系统维护']);
-  assert.equal(dom.window.document.querySelector('#categoryFeatureOverlay'), null);
-
   createMenu.open();
   await nextTick();
   assert.ok(dom.window.document.querySelector('#createFeatureOverlay [role="dialog"]'));
@@ -627,14 +602,13 @@ test('Vue note list and cards dispatch navigation commands directly without docu
   captureLauncher.focus();
   captureDialog.open({
     types: [{ id: 'note', name: '普通笔记' }, { id: 'clip', name: '网页摘录' }],
-    categories: ['网络', '阅读'],
     pasteMode: 'markdown'
   });
   await nextTick();
   assert.equal(dom.window.document.querySelector('#captureOverlay[role="dialog"]'), null);
   assert.ok(dom.window.document.querySelector('#captureOverlay form[role="dialog"]'));
   assert.deepEqual(Array.from(dom.window.document.querySelectorAll('#captureType option')).map(option => option.value), ['note', 'clip']);
-  assert.deepEqual(Array.from(dom.window.document.querySelectorAll('#captureCat option')).map(option => option.value), ['未分类', '网络', '阅读', '网页摘录']);
+  assert.equal(dom.window.document.querySelector('#captureCat'), null, 'quick capture uses note type without a category field');
   assert.equal(dom.window.document.querySelector('#captureType').value, 'clip');
   assert.equal(dom.window.document.querySelector('#capturePasteMode').value, 'markdown');
 
@@ -661,14 +635,14 @@ test('Vue note list and cards dispatch navigation commands directly without docu
   await new Promise(resolve => setImmediate(resolve));
   await nextTick();
   assert.deepEqual(captureSubmissions[0], {
-    title: '路由器维护', type: 'clip', category: '网页摘录', source: 'https://example.com/guide', body: '<p>更新 DNS 配置</p>'
+    title: '路由器维护', type: 'clip', source: 'https://example.com/guide', body: '<p>更新 DNS 配置</p>'
   });
   assert.equal(captureDialog.visible, false, 'successful save closes the dialog only after the save handler resolves');
   assert.notEqual(dom.window.document.activeElement, captureLauncher, 'successful navigation does not steal focus back to the capture launcher');
 
   captureLauncher.focus();
   assert.equal(dom.window.document.activeElement, captureLauncher, 'the launcher can receive focus after the save dialog closes');
-  captureDialog.open({ types: [{ id: 'clip', name: '网页摘录' }], categories: [], pasteMode: 'rich' });
+  captureDialog.open({ types: [{ id: 'clip', name: '网页摘录' }], pasteMode: 'rich' });
   await nextTick();
   await nextTick();
   assert.equal(dom.window.document.activeElement, dom.window.document.querySelector('#capturePad'), 'opening moves focus into the capture content field');

@@ -16,7 +16,7 @@ test('note card snapshot projects display fields through note feature adapters',
     tags, body: '<p>内容</p>', updated: 42, pinned: true
   }), {
     id: 'note-1', title: '容器部署', type: 'command', typeName: 'type:command',
-    category: '服务', tags: ['Linux', 'Docker'], description: '正文摘要',
+    tags: ['Linux', 'Docker'], description: '正文摘要',
     updatedLabel: 'date:42', pinned: true
   });
   assert.deepEqual(calls, [{ body: '<p>内容</p>', title: '容器部署' }]);
@@ -32,6 +32,6 @@ test('note card snapshot supplies the same empty display defaults as the former 
 
   assert.deepEqual(snapshot({ id: 'note-1', type: 'missing', updated: 1 }), {
     id: 'note-1', title: '', type: 'missing', typeName: '其他类型',
-    category: '未分类', tags: [], description: '', updatedLabel: '10/20', pinned: false
+    tags: [], description: '', updatedLabel: '10/20', pinned: false
   });
 });

@@ -57,13 +57,13 @@ export function createRecycleBinView({ main, getData, mutateData = operation => 
     const expiresIn = Math.max(0, Math.ceil((entry.deletedAt + TRASH_RETENTION_MS - Date.now()) / 86400000));
     const kind = entry.kind === 'note' ? '笔记' : entry.item.kind === 'folder' ? '书签分组' : '书签';
     const detail = entry.kind === 'bookmark' && entry.item.kind === 'link' ? `<p class="trash-entry-detail">${esc(entry.item.url)}</p>` :
-      entry.kind === 'note' ? `<p class="trash-entry-detail">${esc(entry.item.category || '未分类')} · ${esc((entry.item.tags || []).slice(0, 3).join(' · '))}</p>` : '';
+      entry.kind === 'note' ? `<p class="trash-entry-detail">${esc((entry.item.tags || []).slice(0, 3).map(tag => `#${tag}`).join(' · '))}</p>` : '';
     return `<article class="trash-entry"><div class="trash-entry-copy"><span class="pill">${kind}</span><h2>${esc(itemTitle(entry))}</h2>${detail}<p class="hint">删除于 ${removedAt} · ${expiresIn ? `${expiresIn} 天后清理` : '即将清理'}</p></div><button type="button" class="secondary-btn" data-trash-restore="${esc(entry.id)}">${icon('back')} 还原</button></article>`;
   }
 
   function render() {
     const entries = [...(getData().trash || [])].sort((left, right) => right.deletedAt - left.deletedAt);
-    main.innerHTML = `<section class="trash-page"><header class="section-head workspace-page-head"><div><h1>回收站</h1><p class="muted">删除的笔记和书签保留 30 天，到期后自动清理。当前 ${entries.length} 项</p></div><div class="workspace-page-actions"><button type="button" class="danger-btn" data-trash-clear ${entries.length && !busy ? '' : 'disabled'}>清空回收站</button></div></header>${entries.length ? `<div class="trash-entry-list">${entries.map(entryMarkup).join('')}</div>` : `<div class="empty trash-empty"><span>${icon('trash')}</span><strong>回收站为空</strong><p>删除的笔记和书签会在这里保留 30 天。</p></div>`}</section>`;
+    main.innerHTML = `<section class="trash-page"><header class="section-head workspace-page-head"><div><h1>回收站</h1><p class="muted">删除的笔记和书签保留 30 天，到期后自动清理。当前 ${entries.length} 项</p></div><div class="workspace-page-actions"><button type="button" class="secondary-btn trash-clear-btn" data-trash-clear ${entries.length && !busy ? '' : 'disabled'}>清空回收站</button></div></header>${entries.length ? `<div class="trash-entry-list">${entries.map(entryMarkup).join('')}</div>` : `<div class="empty trash-empty"><span>${icon('trash')}</span><strong>回收站为空</strong><p>删除的笔记和书签会在这里保留 30 天。</p></div>`}</section>`;
   }
 
   function closeDialog() {

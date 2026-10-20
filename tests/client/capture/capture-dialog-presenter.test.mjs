@@ -8,9 +8,7 @@ function harness({ vueMounted = true, types = [{ id: 'clip', name: '网页摘录
     closeMenu: () => events.push('close-menu'),
     vueMounted,
     getTypes: () => types,
-    getCategories: () => ['未分类', '教程'],
     getPasteMode: () => 'markdown',
-    getLegacyCategoryOptions: () => '<option>网页摘录</option>',
     vueDialog: {
       open: configuration => events.push(['vue-open', configuration]),
       close: () => events.push('vue-close'),
@@ -32,7 +30,6 @@ test('capture presenter closes the mobile menu and opens the Vue dialog with cur
     'close-menu',
     ['vue-open', {
       types: [{ id: 'clip', name: '网页摘录' }, { id: 'note', name: '普通笔记' }],
-      categories: ['未分类', '教程'],
       pasteMode: 'markdown',
       restoreFocusOnClose: false,
     }],
@@ -49,7 +46,6 @@ test('capture presenter configures the legacy dialog with the clip type and clos
     ['legacy-open', {
       types: [{ id: 'clip', name: '网页摘录' }, { id: 'note', name: '普通笔记' }],
       defaultType: 'clip',
-      categoryOptions: '<option>网页摘录</option>',
       pasteMode: 'markdown',
     }],
   ]);
@@ -66,7 +62,6 @@ test('capture presenter falls back to the first available type and routes close 
     ['legacy-open', {
       types: [{ id: 'note', name: '普通笔记' }],
       defaultType: 'note',
-      categoryOptions: '<option>网页摘录</option>',
       pasteMode: 'markdown',
     }],
     'legacy-close',

@@ -4,7 +4,6 @@ export type NoteCardSource = {
   id: string;
   title?: string;
   type: string;
-  category?: string;
   tags?: string[];
   body?: string;
   updated: number;
@@ -23,7 +22,6 @@ export function createNoteCardSnapshot(dependencies: NoteCardSnapshotDependencie
     title: note.title || '',
     type: note.type,
     typeName: dependencies.typeName(note.type),
-    category: note.category || '未分类',
     tags: [...(note.tags || [])],
     description: dependencies.bodyText(note.body, note.title || ''),
     updatedLabel: dependencies.formatDate(note.updated),

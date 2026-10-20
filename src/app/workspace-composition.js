@@ -1,7 +1,7 @@
 
 import DOMPurify from 'dompurify';
 import appPackage from '../../package.json';
-import { appSettingsStore, backupHistoryStore, bookmarkDataStore, captureDialogStore, categoryDialogStore, commandPaletteStore, createMenuStore, dashboardDataStore, editorDataStore, editorPageActionsStore, globalSearchDataStore, navigationActionsStore, noteListDataStore, noteTypeDialogStore, notificationDataStore, profileSettingsStore, readerActionsStore, readerDataStore, sidebarDataStore, syncConflictStore, trashDataStore, vaultDataStore, workspaceAppMounted, workspaceNavigationStore, workspaceShellActionsStore, workspaceShellStore } from './workspace-app.ts';
+import { appSettingsStore, backupHistoryStore, bookmarkDataStore, captureDialogStore, commandPaletteStore, createMenuStore, dashboardDataStore, editorDataStore, editorPageActionsStore, globalSearchDataStore, navigationActionsStore, noteListDataStore, noteTypeDialogStore, notificationDataStore, profileSettingsStore, readerActionsStore, readerDataStore, sidebarDataStore, syncConflictStore, trashDataStore, vaultDataStore, workspaceAppMounted, workspaceNavigationStore, workspaceShellActionsStore, workspaceShellStore } from './workspace-app.ts';
 import { openActionDialog } from '../features/dialogs/action-dialog-service.ts';
 import { createBookmarkView } from '../compat/bookmarks-view.js';
 import { bookmarksHTML, mergeBookmarks, parseBookmarks } from '../features/bookmarks/data.js';
@@ -63,10 +63,6 @@ import { createLegacyNoteTypeDialog } from '../compat/notes/legacy-type-dialog.t
 import { createNoteTypeDialogPresenter } from '../features/notes/type-dialog-presenter.ts';
 import { mountCodeCopyButtons } from '../features/reader/code-copy.ts';
 import { mountHeadingObserver } from '../features/reader/heading-observer.ts';
-import { createCategoryDialogFlow } from '../features/categories/category-dialog-flow.ts';
-import { createCategoryDialogController } from '../features/categories/category-dialog-controller.ts';
-import { createLegacyCategoryDialog } from '../compat/categories/legacy-category-dialog.ts';
-import { renderLegacyCategoryOptions } from '../compat/categories/legacy-option-markup.ts';
 import { createCaptureFlow } from '../features/capture/capture-flow.ts';
 import { createCaptureDialogController } from '../features/capture/capture-dialog-controller.ts';
 import { createCaptureDialogPresenter } from '../features/capture/capture-dialog-presenter.ts';
@@ -280,15 +276,11 @@ const bookmarkMutationActions=createBookmarkMutationActions({
  mutation:vaultMutation,
  notify:toast
 });
-const categoryDialogFlow=createCategoryDialogFlow({getVault,mutateVault:vaultMutation});
-const legacyCategoryDialog=usesVueWorkspace?null:createLegacyCategoryDialog({document,scheduleFocus:callback=>setTimeout(callback,50)});
-const categoryDialogController=createCategoryDialogController({closeMenu,vueMounted:usesVueWorkspace,vueDialog:categoryDialogStore,legacyDialog:legacyCategoryDialog,save:name=>categoryDialogFlow.save(name),onCreated:name=>openHome(name)});
 const captureFlow=createCaptureFlow({getVault,mutateVault:vaultMutation,cleanBody:html=>cleanHTML(html,true),bodyText:html=>htmlToCompactText(html)});
 const legacyCaptureDialog=usesVueWorkspace?null:createLegacyCaptureDialog({document,escapeHtml:esc});
 const captureDialogController=createCaptureDialogController({save:input=>captureFlow.save(input),openNote:id=>openNote(id),legacyDialog:legacyCaptureDialog,notify:toast});
-const captureDialogPresenter=createCaptureDialogPresenter({closeMenu,vueMounted:usesVueWorkspace,getTypes:()=>getVault().noteTypes.map(type=>({id:type.id,name:displayTypeName(type)})),getCategories:()=>getVault().categories,getPasteMode:preferredPasteMode,getLegacyCategoryOptions:()=>categoryOptions('网页摘录'),vueDialog:captureDialogStore,legacyDialog:legacyCaptureDialog});
+const captureDialogPresenter=createCaptureDialogPresenter({closeMenu,vueMounted:usesVueWorkspace,getTypes:()=>getVault().noteTypes.map(type=>({id:type.id,name:displayTypeName(type)})),getPasteMode:preferredPasteMode,vueDialog:captureDialogStore,legacyDialog:legacyCaptureDialog});
 if(usesVueWorkspace)captureDialogStore.bindSave(input=>captureDialogController.saveVue(input));
-if(usesVueWorkspace)categoryDialogStore.bindSave(name=>categoryDialogController.saveVue(name));
 const trashWorkflows=usesVueWorkspace?createTrashWorkflows({
  getVault,
  mutateVault:vaultMutation,
@@ -366,7 +358,6 @@ const workspaceShellActions=createWorkspaceShellActions({
  closeSlashMenu,
  toggleNoteTypes:()=>{const next=!noteTypesExpanded();mutateVault(vault=>{vault.noteTypesExpanded=next});if(!usesVueWorkspace){const list=$('#sideTypes'),toggle=$('#toggleNoteTypes');if(list)list.hidden=!next;toggle?.setAttribute('aria-expanded',String(next));toggle?.setAttribute('aria-label',next?'折叠笔记类型':'展开笔记类型');toggle?.setAttribute('title',next?'折叠笔记类型':'展开笔记类型')}persist()},
  addNoteType:()=>openTypeDialog('create'),
- addCategory:openCategoryDialog,
  openTypeDialog,
  noteTypeCount:()=>getVault().noteTypes.length,
  toast,
@@ -428,8 +419,6 @@ const workspaceContentEvents=usesVueWorkspace?null:createWorkspaceContentEvents(
  exportCurrentNote:editorPageActions.exportHtml,
  chooseImage:editorPageActions.chooseImage,
  saveCapture:()=>saveCapture(),
- addCategory:openCategoryDialog,
- saveCategory,
  addNoteType:()=>openTypeDialog('create'),
  saveNoteType:saveTypeDialog,
  downloadBackup:revision=>{void downloadBackupSnapshot(revision)},
@@ -501,7 +490,6 @@ function openSyncConflict(){syncConflictController.open()}
 syncConflictStore.bindActions(action=>action==='download-backup'?syncConflictController.downloadBackup():syncConflictController.restoreCloudVersion());
 function nowString(t){return new Date(t).toLocaleDateString('zh-CN',{month:'2-digit',day:'2-digit'})};const fullDate=t=>new Date(t).toLocaleDateString('zh-CN',{year:'numeric',month:'2-digit',day:'2-digit'});
 function closeMenu(returnToButton=false){mobileMenuFocusController.close(returnToButton)}
-function categoryOptions(curr){return renderLegacyCategoryOptions(getVault().categories,curr,esc)}
 function setBreadcrumb(s){workspaceShellStore.setBreadcrumbTitle(s)}
 function side(){legacyWorkspaceRenderer?.renderSidebar()}
 function openHome(cat='all'){workspaceNavigation.openHome(cat)}
@@ -599,7 +587,7 @@ const legacyEditorPageController=usesVueWorkspace?null:createLegacyEditorPageCon
  onLoadError:error=>toast(error?.message||'编辑器加载失败')
 });
 function renderEditorLegacy(){return legacyEditorPageController?.render()}
-function renderEditorLegacyReady(){destroyRichEditor();const n=ensureDraft();setBreadcrumb(n.title||'新建笔记');const publishLabel=isDraft(n)?'发布笔记':'保存笔记';main.innerHTML=renderLegacyEditorMarkup({note:n,noteTypes:getVault().noteTypes,publishLabel,icons,escapeHtml:esc,displayTypeName,categoryOptions,preferredPasteMode});mountEditorSurface()}
+function renderEditorLegacyReady(){destroyRichEditor();const n=ensureDraft();setBreadcrumb(n.title||'新建笔记');const publishLabel=isDraft(n)?'发布笔记':'保存笔记';main.innerHTML=renderLegacyEditorMarkup({note:n,noteTypes:getVault().noteTypes,publishLabel,icons,escapeHtml:esc,displayTypeName,preferredPasteMode});mountEditorSurface()}
 
 function openTypeDialog(mode,id=null){
  noteTypeDialogOpenFlow.open(mode,id);
@@ -670,8 +658,6 @@ if(usesVueWorkspace)captureDialogStore.bindPasteHandler(pasteRich);
 function openCapture(options={}){captureDialogPresenter.open(options)}
 function closeCapture(){captureDialogPresenter.close()}
 async function saveCapture(){await captureDialogController.saveLegacy()}
-function openCategoryDialog(){categoryDialogController.open()}
-async function saveCategory(){await categoryDialogController.saveLegacy()}
 const backupHistoryOpenFlow=createBackupHistoryOpenFlow({isEditing:()=>navigationStore.editing,saveActiveDraft:()=>saveDraft(true),closeSettings:closeAccountSettings,closeMenu,showDialog:()=>backupHistoryStore.show(),refresh:()=>backupHistoryStore.refresh()});
 async function openBackupHistory(){await backupHistoryOpenFlow.open()}
 function downloadBackupSnapshot(revision){return backupWorkflows.downloadSnapshot(revision)}
@@ -697,7 +683,7 @@ workspaceShellStore.setIdentity(initial.username||'本地预览',!!initial.local
 if(!initial.local)void profileSettings.refresh().catch(()=>{});
 const disposeWorkspaceInteractions=mountWorkspaceInteractionRuntime({
  document,window,
- staticDom:usesVueWorkspace?null:{closeCapture,closeCreateMenu:()=>legacyCreateMenu?.close(),handleCapturePaste:pasteRich,saveCategory,saveNoteType:saveTypeDialog},
+ staticDom:usesVueWorkspace?null:{closeCapture,closeCreateMenu:()=>legacyCreateMenu?.close(),handleCapturePaste:pasteRich,saveNoteType:saveTypeDialog},
  editorLifecycle:{isEditing:()=>navigationStore.editing,hasEditorChanges:editorHasChanges,saveDraft,hasUnsavedChanges:hasUnsaved},
  routeHandlers:[
   ...(usesVueWorkspace?[]:[event=>workspaceNavigationEvents.handle(event)]),

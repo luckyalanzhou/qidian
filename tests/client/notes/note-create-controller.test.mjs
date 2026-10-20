@@ -7,7 +7,7 @@ const makeVault = (noteTypes = [
   { id: 'command', name: '命令速查' }
 ]) => ({ notes: [], noteTypes, categories: [], bookmarks: [], trash: [] });
 
-test('note creation saves the active draft, applies the current type and category, then activates the new editor', () => {
+test('note creation saves the active draft, applies the current type and leaves legacy category data at its default', () => {
   const vault = makeVault();
   const steps = [];
   const controller = createNoteController({
@@ -29,7 +29,7 @@ test('note creation saves the active draft, applies the current type and categor
   ]);
   assert.equal(steps[0][1], true, 'the current draft is saved quietly before creating another note');
   assert.equal(note.type, 'command', 'the selected type filter is honored for a generic new-note action');
-  assert.equal(note.category, '网络', 'the active category becomes the new note category');
+  assert.equal(note.category, '未分类', 'removed category navigation no longer changes the legacy storage field');
   assert.equal(vault.notes[0], note);
 });
 

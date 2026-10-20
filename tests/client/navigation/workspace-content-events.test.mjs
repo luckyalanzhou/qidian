@@ -5,7 +5,7 @@ import { createWorkspaceContentEvents } from '../../../src/features/navigation/w
 const ACTIONS = [
   'openCreateMenu', 'openCapture', 'beginEdit', 'showDraftPreview', 'publishNote', 'togglePinned',
   'duplicateNote', 'deleteEditorNote', 'deleteCurrentNote', 'saveEditor', 'chooseAttachment',
-  'exportCurrentNote', 'chooseImage', 'saveCapture', 'addCategory', 'saveCategory', 'addNoteType',
+  'exportCurrentNote', 'chooseImage', 'saveCapture', 'addNoteType',
   'saveNoteType', 'downloadBackup', 'restoreBackup', 'openSearch', 'closeSearch'
 ];
 
@@ -32,7 +32,7 @@ test('note and editor controls route to explicit feature actions synchronously w
   for (const [selector, action] of [
     ['#newSide', 'openCreateMenu'], ['#editDoc', 'beginEdit'], ['#showDraftView', 'showDraftPreview'],
     ['#publishDoc', 'publishNote'], ['#duplicateDoc', 'duplicateNote'], ['#saveEditor', 'saveEditor'],
-    ['#addAttachment', 'chooseAttachment'], ['#addImgButton', 'chooseImage'], ['#addCategory', 'addCategory'],
+    ['#addAttachment', 'chooseAttachment'], ['#addImgButton', 'chooseImage'],
     ['#addNoteType', 'addNoteType']
   ]) {
     assert.equal(h.events.handleClick(click(selector)), true, `${selector} is handled`);
@@ -44,7 +44,7 @@ test('async document mutations are awaited and handled once', async () => {
   const h = harness();
   for (const [selector, action] of [
     ['#pinDoc', 'togglePinned'], ['#deleteEditorNote', 'deleteEditorNote'], ['#deleteDoc', 'deleteCurrentNote'],
-    ['#captureSave', 'saveCapture'], ['#categoryDialogConfirm', 'saveCategory'], ['#typeDialogConfirm', 'saveNoteType']
+    ['#captureSave', 'saveCapture'], ['#typeDialogConfirm', 'saveNoteType']
   ]) {
     assert.equal(await h.events.handleClick(click(selector)), true);
     assert.equal(h.calls.at(-1)[0], action);

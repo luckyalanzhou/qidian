@@ -3,7 +3,6 @@ import type { BookmarkItem, VaultNote } from '../../../shared/api-contracts.js';
 export type GlobalSearchNoteResult = {
   id: string;
   title: string;
-  category: string;
   typeLabel: string;
   updatedLabel: string;
 };
@@ -39,7 +38,6 @@ export function createGlobalSearchSnapshot(options: GlobalSearchSnapshotOptions)
   const notes = options.notes
     .filter(note => matches([
       note.title,
-      note.category,
       note.source,
       ...(note.tags || []),
       options.bodyText(note.body)
@@ -50,7 +48,6 @@ export function createGlobalSearchSnapshot(options: GlobalSearchSnapshotOptions)
     .map(note => ({
       id: note.id,
       title: note.title || '无标题笔记',
-      category: note.category || '',
       typeLabel: options.typeLabel(note.type),
       updatedLabel: options.formatDate(note.updated)
     }));

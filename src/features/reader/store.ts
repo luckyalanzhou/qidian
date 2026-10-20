@@ -10,7 +10,6 @@ const emptySnapshot = (): ReaderSnapshot => ({
   noteId: '',
   title: '',
   typeLabel: '',
-  category: '',
   updatedLabel: '',
   createdLabel: '',
   readingMinutes: 1,

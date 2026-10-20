@@ -100,10 +100,13 @@ test('the unified update action remains available when current and reports a com
   dom.window.close();
 });
 
-test('version details stack version rows and reserve space for notes and live update logs', async () => {
+test('version details keep current and latest side by side and reserve space for notes and live update logs', async () => {
   const styles=await readFile(new URL('../../../src/styles.css',import.meta.url),'utf8');
   assert.match(styles, /@media\(max-width:560px\)\{#versionInfoOverlay\{align-items:center;/);
-  assert.match(styles, /\.version-pair\{grid-template-columns:minmax\(0,1fr\);gap:0\}/);
+  assert.match(styles, /\.version-pair\{display:grid;grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
+  assert.match(styles, /\.version-pair>div\{[^}]*justify-content:space-between/, 'the current version is the left card and latest version is the right card');
+  assert.match(styles, /\.version-pair>div\{[^}]*border:1px solid var\(--line\)/, 'both version values render in separate theme cards');
+  assert.match(styles, /\.version-dialog\{width:min\(860px,100%\);height:min\(90svh,940px\)/, 'the dialog reserves enough height for its content');
   assert.match(styles, /\.version-dialog-body\{display:flex;flex:1 1 auto;flex-direction:column;min-height:0;overflow:hidden\}/, 'version details stay fixed while the dialog remains open');
   assert.match(styles, /\.version-pair span\{color:var\(--sub\);font-size:11px\}/, 'version labels use compact text');
   assert.match(styles, /\.version-pair strong\{[^}]*font-size:12px/);
@@ -112,12 +115,15 @@ test('version details stack version rows and reserve space for notes and live up
   assert.match(styles, /\.release-notes pre\{[^}]*overflow:hidden/);
   assert.match(styles, /\.update-progress-log\{[^}]*overflow:auto/,'only the live log content scrolls');
   assert.doesNotMatch(styles, /\.version-dialog-body\{[^}]*overflow:auto|\.release-notes\{[^}]*overflow:auto/);
-  assert.match(styles, /\.release-notes\{min-height:clamp\(80px,14svh,120px\);max-height:min\(22svh,150px\)/);
+  assert.match(styles, /\.version-dialog\{height:min\(94svh,1080px\);min-height:min\(86svh,760px\);max-height:96svh\}/, 'the modal uses nearly all available viewport height');
+  assert.match(styles, /\.version-notes-section\{max-height:48%;min-height:0\}/, 'release notes receive more room before logs start');
+  assert.match(styles, /\.release-notes\{min-height:0;max-height:none\}/, 'release notes are not cut at a short fixed height');
   assert.match(styles, /\.update-progress-log\{[^}]*min-height:150px/);
   assert.match(styles, /\.update-progress-log\{min-height:110px/);
-  assert.match(styles, /\.update-progress\{flex:2 1 0;min-height:clamp\(270px,36vh,380px\)\}/,'the progress card reserves a substantially larger share of desktop dialog height');
-  assert.match(styles, /\.update-progress-log\{min-height:190px\}/,'desktop live logs have enough height to inspect several lines at once');
-  assert.match(styles, /\.update-progress-log\{min-height:140px\}/,'mobile live logs stay usable without crowding the fixed dialog actions');
+  assert.match(styles, /\.update-progress-log\{min-height:200px\}/,'desktop live logs have enough height to inspect several lines at once');
+  assert.match(styles, /\.version-pair\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\);gap:8px\}/,'the version cards stay side by side on mobile');
+  assert.match(styles, /\.update-progress\{flex:1 1 0;min-height:clamp\(280px,34svh,380px\)\}/,'the progress card fits below the expanded release notes');
+  assert.match(styles, /\.update-progress-log\{min-height:130px\}/,'mobile live logs stay usable without crowding the fixed dialog actions');
 });
 
 test('release notes use readable Markdown blocks, suppress generated release commit noise, and treat embedded HTML as text', () => {

@@ -105,17 +105,5 @@ function icon(name: string) {
       </div>
     </section>
 
-    <section class="side-section" :hidden="!notesContext">
-      <div class="side-label side-heading">
-        <span class="side-heading-title">内容分类</span>
-        <button id="addCategory" class="side-add" type="button" title="添加分类" aria-label="添加分类" @click.stop="shellActions.execute({ type: 'add-category' })">＋</button>
-      </div>
-      <div id="sideCats">
-        <button v-for="category in sidebar.snapshot.categories" :key="category" class="side-link" :class="{ active: navigation.active === category && navigation.page === 'home' }" :data-nav="category" @click.stop="navigationActions.execute({ type: 'home', category })">
-          <span class="ico"><svg aria-hidden="true"><use :href="icon('folder')" /></svg></span>{{ category }}
-          <span class="count">{{ sidebar.snapshot.categoryCounts[category] ?? 0 }}</span>
-        </button>
-      </div>
-    </section>
   </Teleport>
 </template>

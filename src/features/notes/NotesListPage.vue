@@ -32,7 +32,7 @@ function icon(name: string) {
 
       <label class="workspace-search note-page-search">
         <span class="ico"><svg aria-hidden="true"><use :href="icon('search')" /></svg></span>
-        <input id="notePageSearch" type="search" aria-label="筛选当前笔记标题、正文、分类和标签" placeholder="筛选本页笔记标题、正文、分类和标签" :value="notesPage.snapshot.query" @input="filterNotes">
+        <input id="notePageSearch" type="search" aria-label="筛选当前笔记标题、正文和标签" placeholder="筛选本页笔记标题、正文和标签" :value="notesPage.snapshot.query" @input="filterNotes">
       </label>
 
       <div class="filter-tabs home-type-tabs" aria-label="笔记类型">

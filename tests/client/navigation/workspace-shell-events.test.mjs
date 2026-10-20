@@ -8,7 +8,7 @@ function harness(overrides = {}) {
   const dependencies = Object.fromEntries([
     'closeThemeMenu', 'toggleThemeMenu', 'closeAccountMenu', 'toggleAccountMenu',
     'openProfileSettings', 'openAppSettings', 'signOut', 'closeSlashMenu',
-    'toggleNoteTypes', 'addNoteType', 'addCategory', 'toast', 'moveNoteToTrash', 'render', 'closeSearch'
+    'toggleNoteTypes', 'addNoteType', 'toast', 'moveNoteToTrash', 'render', 'closeSearch'
   ].map(name => [name, (...args) => { calls.push([name, ...args]); return name === 'moveNoteToTrash' ? true : undefined; }]));
   Object.assign(dependencies, {
     applyTheme: theme => calls.push(['applyTheme', theme]),
@@ -88,14 +88,12 @@ test('typed Vue sidebar actions share the shell boundary and delete workflow', a
   const h = harness();
   assert.equal(h.actions.execute({ type: 'toggle-note-types' }), true);
   assert.equal(h.actions.execute({ type: 'add-note-type' }), true);
-  assert.equal(h.actions.execute({ type: 'add-category' }), true);
   assert.equal(h.actions.execute({ type: 'edit-note-type', id: 'command' }), true);
   assert.equal(h.actions.execute({ type: 'delete-note-type', id: 'command' }), true);
   assert.equal(await h.actions.execute({ type: 'delete-note', id: 'n-2' }), true);
   assert.deepEqual(h.calls, [
     ['closeThemeMenu'], ['closeAccountMenu'], ['closeSlashMenu'], ['toggleNoteTypes'],
     ['closeThemeMenu'], ['closeAccountMenu'], ['closeSlashMenu'], ['addNoteType'],
-    ['closeThemeMenu'], ['closeAccountMenu'], ['closeSlashMenu'], ['addCategory'],
     ['closeThemeMenu'], ['closeAccountMenu'], ['closeSlashMenu'], ['openTypeDialog', 'edit', 'command'],
     ['closeThemeMenu'], ['closeAccountMenu'], ['closeSlashMenu'], ['openTypeDialog', 'delete', 'command'],
     ['closeThemeMenu'], ['closeAccountMenu'], ['closeSlashMenu'],

@@ -120,7 +120,7 @@ export function createLegacyEditorToolbarView(dependencies: Dependencies) {
       const properties = document.createElement('details');
       properties.className = 'editor-properties';
       properties.open = !window.matchMedia?.('(max-width: 720px)').matches;
-      properties.innerHTML = '<summary>笔记属性 <span>类型、分类、标签与来源</span></summary>';
+      properties.innerHTML = '<summary>笔记属性 <span>类型、标签与来源</span></summary>';
       fields.forEach(node => properties.append(node));
       toolbar.previousElementSibling?.append(properties);
     }

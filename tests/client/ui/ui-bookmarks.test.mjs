@@ -160,6 +160,9 @@ test('bookmark and recycle-bin mutations roll back when the Docker transaction i
   const trashMount=await mount({...structuredClone(empty),trash:[createTrashEntry('note',note,{index:0})]},{commitError:'Docker 服务端保存失败'});
   const trashGeneration=trashMount.w.vaultDataStore.generation;
   trashMount.w.document.querySelector('[data-trash-nav]').click();
+  const clearTrashButton=trashMount.w.document.querySelector('[data-trash-clear]');
+  assert.ok(clearTrashButton.classList.contains('secondary-btn') && clearTrashButton.classList.contains('trash-clear-btn'));
+  assert.equal(clearTrashButton.classList.contains('danger-btn'),false,'the page-level action follows the theme and uses a subdued destructive treatment');
   trashMount.w.document.querySelector('[data-trash-clear]').click();
   trashMount.w.document.querySelector('#trashClearOverlay form').dispatchEvent(new trashMount.w.Event('submit',{bubbles:true,cancelable:true}));
   await new Promise(resolve=>setTimeout(resolve,0));

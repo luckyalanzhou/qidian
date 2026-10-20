@@ -34,9 +34,6 @@ export function selectNotes(notes: readonly VaultNote[], options: NoteListOption
 
   if (!drafts) {
     if (options.active === 'pinned') result = result.filter(note => note.pinned);
-    else if (!['all', 'recent'].includes(options.active)) {
-      result = result.filter(note => note.category === options.active);
-    }
   }
 
   if (options.typeFilter !== 'all') {
@@ -47,7 +44,6 @@ export function selectNotes(notes: readonly VaultNote[], options: NoteListOption
   if (query) {
     result = result.filter(note => [
       note.title,
-      note.category,
       note.source,
       ...(note.tags || []),
       options.bodyText(note.body, note.title)

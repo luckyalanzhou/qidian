@@ -71,7 +71,7 @@ function handleKeydown(event: KeyboardEvent) {
             @click.stop="navigationActions.execute({ type: 'search-result', id: note.id })"
           >
             <span class="search-kind">笔记</span>{{ note.title }}
-            <small>{{ note.category }} · {{ note.typeLabel }} · {{ note.updatedLabel }}</small>
+            <small>{{ note.typeLabel }} · {{ note.updatedLabel }}</small>
           </button>
           <a
             v-for="bookmark in store.snapshot.bookmarks"

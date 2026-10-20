@@ -42,7 +42,7 @@ function icon(name: string) {
           <p class="muted">删除的笔记和书签保留 30 天，到期后自动清理。当前 {{ trash.snapshot.count }} 项</p>
         </div>
         <div class="workspace-page-actions">
-          <button type="button" class="danger-btn" data-trash-clear :disabled="!trash.snapshot.count || clearing" @click="clearAll">{{ clearing ? '正在清空…' : '清空回收站' }}</button>
+          <button type="button" class="secondary-btn trash-clear-btn" data-trash-clear :disabled="!trash.snapshot.count || clearing" @click="clearAll">{{ clearing ? '正在清空…' : '清空回收站' }}</button>
         </div>
       </header>
 
