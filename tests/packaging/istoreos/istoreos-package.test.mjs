@@ -39,7 +39,7 @@ test('LuCI version action retains its native form submission and follows operati
     const scheduled = [];
     window.setTimeout = callback => scheduled.push(callback);
     window.fetch = async () => ({ ok: true, json: async () => ({
-      busy: false, state: 'running', result: 'success', accountStatus: 'ready', log: '更新完成'
+      busy: false, state: 'running', result: 'success', log: '更新完成'
     }) });
     window.eval(script(logs));
     await new Promise(resolve => setImmediate(resolve));
@@ -432,7 +432,8 @@ test('LuCI uses native CBI sections, controls, tabs, and log output', async () =
   assert.match(service, /class="cbi-section qidian-overview"/);
   assert.match(service, /<h3><%:服务概览%><\/h3>/);
   assert.match(service, /class="cbi-value-title"/);
-  assert.match(service, /<table class="table cbi-section-table">[\s\S]*?<%:服务状态%>[\s\S]*?<%:版本%>[\s\S]*?id="qidian-version-text"[\s\S]*?id="qidian-version-actions"[\s\S]*?<%:Docker 数据目录%>[\s\S]*?<%:账号状态%>[\s\S]*?<\/table>/, 'show concise service information in native LuCI table rows');
+  assert.match(service, /<table class="table cbi-section-table">[\s\S]*?<%:服务状态%>[\s\S]*?<%:版本%>[\s\S]*?id="qidian-version-text"[\s\S]*?id="qidian-version-actions"[\s\S]*?<%:网页入口%>[\s\S]*?<\/table>/, 'show concise service details without storage or account internals');
+  assert.doesNotMatch(service, /Docker 数据目录|qidian-data-path|账号状态|qidian-account-state|account-status/);
   assert.match(service, /local version_text = plugin_version == app_version and plugin_version or/);
   assert.match(service, /<span id="qidian-version-text"><%=util.pcdata\(version_text\)%><\/span>/);
   assert.doesNotMatch(service, /<strong id="qidian-(?:plugin|image)-version"/);
@@ -441,13 +442,15 @@ test('LuCI uses native CBI sections, controls, tabs, and log output', async () =
   assert.match(service, /if \(startButton\) startButton\.disabled = busy \|\| running/);
   assert.match(service, /if \(stopButton\) stopButton\.disabled = busy \|\| !running/);
   assert.match(service, /if \(removeButton\) removeButton\.disabled = busy/);
-  assert.match(service, /if \(moved\) serviceActionFields\.appendChild\(document\.createTextNode\(" "\)\)/);
   assert.match(service, /field\.remove\(\)/, 'remove empty CBI rows after grouping the native action buttons');
   assert.match(service, /if \(label\) label\.remove\(\)/, 'hide redundant CBI field titles for action buttons');
   assert.doesNotMatch(service, /cbi-section-descr"><%:卸载仅移除容器/);
   assert.doesNotMatch(service, /cbi-value-title"><%:运行状态%>|cbi-value-title"><%:网页入口%>/);
   assert.doesNotMatch(service, /<details|<summary|qidian-modal|仅在需要重置密码时展开/);
-  assert.match(service, /qidian-data-path/);
+  assert.match(service, /@media screen and \(max-width: 600px\)/);
+  assert.match(service, /#qidian-service-action-fields \{ display: inline-flex; flex-wrap: wrap;/);
+  assert.match(service, /\.cbi-section-table td \{ border: 0; \}/);
+  assert.match(service, /\.cbi-section-table th \{ width: 30%; text-align: start;/);
   assert.match(service, /name\$="\.' \+ suffix/);
   assert.match(service, /name\$="\._remove"/);
   assert.doesNotMatch(service, /refreshStatus|fetch\(endpoint/, 'poll service state through the same request as the live log');
@@ -459,9 +462,8 @@ test('LuCI uses native CBI sections, controls, tabs, and log output', async () =
   assert.doesNotMatch(service, /打开栖点并创建管理员/);
   assert.match(service, /栖点服务运行中/);
   assert.match(service, /卸载会移除栖点容器，但会保留知识库数据、附件、证书和配置/);
-  assert.doesNotMatch(styles, /\b(background|color|grid|border-radius|border-color|border-width|@media|@keyframes)\b|display:\s*flex/i, 'the page leaves layout and colors to the active LuCI theme');
-  assert.doesNotMatch(service, /syncArgonPalette|argon\/css\/dark|--qidian-(?:ink|surface|blue)|display:grid/);
-  assert.match(service, /<%:Docker 数据目录%><\/th><td><code id="qidian-data-path">/);
+  assert.doesNotMatch(styles, /\b(background|color|grid|border-radius|border-color|border-width|@media|@keyframes)\b/i, 'the page leaves colors to the active LuCI theme');
+  assert.doesNotMatch(service, /syncArgonPalette|argon\/css\/dark|--qidian-(?:ink|surface|blue)|display:\s*grid/);
   assert.doesNotMatch(service, /qidian-copy-path|复制路径|function copyText/);
   assert.match(account, /id="qidian-account-tools"/);
   assert.match(account, /docker exec -it qidian node server\/reset-password\.mjs/);

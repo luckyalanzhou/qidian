@@ -1,9 +1,6 @@
 <% local sys = require "luci.sys"; local util = require "luci.util" %>
 <% local state = util.trim(sys.exec("/usr/libexec/istorec/qidian.sh status 2>/dev/null")) %>
 <% local result = util.trim(sys.exec("cat /tmp/qidian-operation.result 2>/dev/null")) %>
-<% local account_status = util.trim(sys.exec("/usr/libexec/istorec/qidian.sh account-status 2>/dev/null")) %>
-<% local data_path = util.trim(sys.exec("uci -q get qidian.main.data_path 2>/dev/null")) %>
-<% if data_path == "" then local docker_root = util.trim(sys.exec("docker info --format '{{.DockerRootDir}}' 2>/dev/null")); if docker_root:sub(1, 1) == "/" and docker_root ~= "/" then data_path = docker_root:gsub("/$", "") .. "/volumes/qidian/data" else data_path = translate("等待 Docker 启动后检测") end end %>
 <% local busy = sys.call("test -d /tmp/qidian-operation.lock || test -f /tmp/qidian-operation.queued") == 0 %>
 <% local plugin_version = util.trim(sys.exec("cat /etc/qidian-version 2>/dev/null")); if plugin_version == "" then plugin_version = translate("尚未安装") end %>
 <% local app_version = util.trim(sys.exec("docker inspect --format '{{range .Config.Env}}{{println .}}{{end}}' qidian 2>/dev/null | sed -n 's/^QIDIAN_VERSION=//p' | sed -n '1p'")); if app_version == "" then app_version = translate("尚未部署") end %>
@@ -16,8 +13,6 @@
 		<tbody>
 			<tr><th scope="row"><%:服务状态%></th><td><strong id="qidian-service-title"><%=util.pcdata(initial_status)%></strong></td></tr>
 			<tr><th scope="row"><%:版本%></th><td><span id="qidian-version-text"><%=util.pcdata(version_text)%></span><span id="qidian-version-actions"></span></td></tr>
-			<tr><th scope="row"><%:Docker 数据目录%></th><td><code id="qidian-data-path"><%=util.pcdata(data_path)%></code></td></tr>
-			<tr><th scope="row"><%:账号状态%></th><td><strong id="qidian-account-state"><% if account_status == "setup_required" then %><%:管理员待创建%><% elseif account_status == "ready" then %><%:管理员已创建%><% else %><%:启动后检测%><% end %></strong></td></tr>
 			<tr id="qidian-open-row" <% if state ~= "running" or busy then %>hidden<% end %>><th scope="row"><%:网页入口%></th><td><a id="qidian-open" class="cbi-button cbi-button-apply" href="http://localhost:9908" target="_blank" rel="noopener"><%:打开栖点%> ↗</a></td></tr>
 		</tbody>
 	</table>
@@ -38,7 +33,6 @@
 			if (field) {
 				var label = field.querySelector(".cbi-value-title");
 				if (label) label.remove();
-				if (moved) serviceActionFields.appendChild(document.createTextNode(" "));
 				serviceActionFields.appendChild(button);
 				field.remove();
 				moved += 1;
@@ -97,7 +91,26 @@
 </script>
 
 <style>
+.qidian-overview .cbi-section-table { width: 100%; table-layout: fixed; }
+.qidian-overview .cbi-section-table tr,
+.qidian-overview .cbi-section-table th,
+.qidian-overview .cbi-section-table td { border: 0; }
+.qidian-overview .cbi-section-table th { width: 30%; text-align: start; vertical-align: middle; }
+.qidian-overview .cbi-section-table td { min-width: 0; overflow-wrap: anywhere; vertical-align: middle; }
 .qidian-overview code { overflow-wrap: anywhere; }
-.qidian-overview #qidian-version-text, .qidian-overview #qidian-version-actions { display: inline-block; vertical-align: middle; }
-.qidian-overview #qidian-version-actions { margin-inline-start: 1em; }
+.qidian-overview #qidian-version-text, .qidian-overview #qidian-version-actions { display: inline-flex; align-items: center; vertical-align: middle; }
+.qidian-overview #qidian-version-actions { margin-inline-start: .75em; }
+.qidian-overview #qidian-service-action-fields { display: inline-flex; flex-wrap: wrap; align-items: center; gap: .5em; }
+@media screen and (max-width: 600px) {
+	.qidian-overview .cbi-section-table,
+	.qidian-overview .cbi-section-table tbody,
+	.qidian-overview .cbi-section-table tr { display: block; width: 100%; }
+	.qidian-overview .cbi-section-table tr { padding: .45em 0; }
+	.qidian-overview .cbi-section-table th,
+	.qidian-overview .cbi-section-table td { display: block; box-sizing: border-box; width: 100%; padding: .2em 0; text-align: start; }
+	.qidian-overview .cbi-section-table th { white-space: normal; }
+	.qidian-overview #qidian-version-actions { margin-inline-start: .5em; }
+	.qidian-overview #qidian-service-operations { display: block; }
+	.qidian-overview #qidian-service-action-fields { display: flex; }
+}
 </style>

@@ -39,14 +39,12 @@
 	function updateOverview(data) {
 		var title = document.getElementById("qidian-service-title");
 		var openRow = document.getElementById("qidian-open-row");
-		var accountState = document.getElementById("qidian-account-state");
-		if (!title || !openRow || !accountState) return;
+		if (!title || !openRow) return;
 		if (data.busy) title.textContent = "操作进行中";
 		else if (data.state === "running") title.textContent = "栖点服务运行中";
 		else if (data.state === "error" || data.result === "failed") title.textContent = data.state === "error" ? "Docker 服务不可用" : "上次操作失败";
 		else title.textContent = "服务未启动";
 		openRow.hidden = data.busy || data.state !== "running";
-		accountState.textContent = data.accountStatus === "setup_required" ? "管理员待创建" : data.accountStatus === "ready" ? "管理员已创建" : "启动后检测";
 		var startButton = document.querySelector('input[type="submit"][name$="._start"]');
 		var stopButton = document.querySelector('input[type="submit"][name$="._stop"]');
 		var removeButton = document.querySelector('input[type="submit"][name$="._remove"]');
