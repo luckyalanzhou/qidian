@@ -2,6 +2,17 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { jsonHeaders, jsonResponse } from '../../server/http-responses.js';
 import { isApiRequest } from '../../shared/api-contracts.js';
+import { isImmutableStaticAsset } from '../../server/http-server.mjs';
+
+test('Vite hashed assets use immutable caching across its case and underscore hash alphabet', () => {
+  for (const path of [
+    'dist/assets/index-Dr5n82IP.css',
+    'dist/assets/editor-extensions-K4QiaSOV.js',
+    'dist\\assets\\workspace-app-fsnlJvSm.js'
+  ]) assert.equal(isImmutableStaticAsset(path), true, path);
+  assert.equal(isImmutableStaticAsset('dist/assets/index.html'), false);
+  assert.equal(isImmutableStaticAsset('dist/assets/main.css'), false);
+});
 
 test('shared request contracts accept only documented write DTOs', () => {
   assert.equal(isApiRequest('systemUpdateRequest', { action: 'update' }), true);

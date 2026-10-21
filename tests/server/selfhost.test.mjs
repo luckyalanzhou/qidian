@@ -30,7 +30,10 @@ test('self-hosted SQLite migrations back up schema changes and serve a private a
   const data = join(temp, 'data');
   const staticRoot = join(temp, 'dist');
   await mkdir(staticRoot, { recursive: true });
+  await mkdir(join(staticRoot, 'assets'), { recursive: true });
   await writeFile(join(staticRoot, 'index.html'), '<!doctype html><title>Qidian</title>');
+  await writeFile(join(staticRoot, 'assets', 'editor-extensions-K4QiaSOV.js'), 'hashed asset');
+  await writeFile(join(staticRoot, 'assets', 'plain.js'), 'unhashed asset');
 
   const DB = await openSelfHostedDatabase({ databasePath: join(data, 'qidian.sqlite'), migrationsDir: resolve('migrations') });
   const migrations = await DB.prepare('SELECT name FROM qidian_schema_migrations ORDER BY name').all();
@@ -61,6 +64,11 @@ test('self-hosted SQLite migrations back up schema changes and serve a private a
   assert.match(page.headers.get('content-security-policy'), /frame-ancestors 'none'/);
   assert.match(page.headers.get('content-security-policy'), /script-src 'self' 'wasm-unsafe-eval'/);
   assert.match(page.headers.get('content-security-policy'), /worker-src 'self'/);
+  assert.equal(page.headers.get('cache-control'), 'no-store');
+  const hashedAsset = await fetch(`${base}/assets/editor-extensions-K4QiaSOV.js`);
+  assert.equal(hashedAsset.headers.get('cache-control'), 'public, max-age=31536000, immutable');
+  const unhashedAsset = await fetch(`${base}/assets/plain.js`);
+  assert.equal(unhashedAsset.headers.get('cache-control'), 'no-store');
   const ready = await fetch(`${base}/readyz`);
   assert.equal(ready.status,200);
   assert.equal(await ready.text(),'ready');

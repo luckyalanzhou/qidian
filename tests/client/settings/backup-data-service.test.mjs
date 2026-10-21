@@ -62,9 +62,17 @@ test('import reuses an identical stored attachment without uploading a duplicate
 
 test('import uploads changed attachment bytes and rewrites references in the restored notes', async () => {
   const h = harness({ assets: [{ id, name: 'image.bin', size: content.length }], storedBytes: new Uint8Array([0, 0, 0]) });
-  const restored = await h.service.readBackup(zipFile());
+  const data = {
+    ...vault,
+    notes: [{ ...vault.notes[0], publishedSnapshot: { body: `<img src="/api/assets/${id}">` } }],
+    trash: [{ kind: 'note', item: { body: `<img src="/api/assets/${id}">`, publishedSnapshot: { body: `<img src="/api/assets/${id}">` } } }]
+  };
+  const restored = await h.service.readBackup(zipFile(data));
 
   assert.match(restored.notes[0].body, /\/api\/assets\/reuploaded/);
+  assert.match(restored.notes[0].publishedSnapshot.body, /\/api\/assets\/reuploaded/);
+  assert.match(restored.trash[0].item.body, /\/api\/assets\/reuploaded/);
+  assert.match(restored.trash[0].item.publishedSnapshot.body, /\/api\/assets\/reuploaded/);
   assert.deepEqual(h.events, ['list-assets', `read-asset:${id}`, 'upload:image.bin']);
 });
 

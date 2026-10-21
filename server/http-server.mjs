@@ -77,6 +77,12 @@ function safeStaticPath(root, pathname) {
   return path === root || path.startsWith(`${root}${sep}`) ? path : null;
 }
 
+export function isImmutableStaticAsset(path) {
+  const segments = String(path).split(/[\\/]/);
+  const filename = segments.at(-1) || '';
+  return segments.includes('assets') && /(?:^|[.-])[A-Za-z0-9_-]{8,}(?=[.-])/.test(filename);
+}
+
 export function createSelfHostedServer({ DB, root = resolve('dist'), registrationEnabled = false, trustProxy = false, trustedProxies = [],
   updateRequestDir, updateStatusDir, qidianVersion = PACKAGE_VERSION || '0.0.0', fetchRelease = globalThis.fetch } = {}) {
   if (!DB) throw new Error('A configured SQLite database is required before serving requests');
@@ -147,7 +153,7 @@ export function createSelfHostedServer({ DB, root = resolve('dist'), registratio
         return;
       }
       const content = await readFile(actualPath);
-      const hashedAsset = /[.-][a-f0-9]{8,}[.-]/i.test(actualPath) && actualPath.includes(`${sep}assets${sep}`);
+      const hashedAsset = isImmutableStaticAsset(actualPath);
       writeHead(outgoing, 200, {
         'Content-Type': MIME[extname(actualPath).toLowerCase()] || 'application/octet-stream',
         'Cache-Control': hashedAsset ? 'public, max-age=31536000, immutable' : 'no-store',

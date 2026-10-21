@@ -23,10 +23,11 @@ export function mountEditorDocumentLifecycle(
     if (document.visibilityState === 'hidden' && actions.isEditing()) actions.saveDraft(true);
   }
 
-  document.addEventListener('beforeunload', handleBeforeUnload);
+  const window = document.defaultView;
+  window?.addEventListener('beforeunload', handleBeforeUnload);
   document.addEventListener('visibilitychange', handleVisibilityChange);
   return () => {
-    document.removeEventListener('beforeunload', handleBeforeUnload);
+    window?.removeEventListener('beforeunload', handleBeforeUnload);
     document.removeEventListener('visibilitychange', handleVisibilityChange);
   };
 }

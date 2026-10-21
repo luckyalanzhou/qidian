@@ -92,6 +92,13 @@ test('mobile drawer exposes its state and every home entry closes it on the dash
   dom.window.close();
 });
 
+test('mobile drawer has a close control inside the drawer so it stays above the overlay', async () => {
+  const source = await readFile(new URL('../../../src/features/navigation/MobileDrawerControls.vue', import.meta.url), 'utf8');
+  const styles = await readFile(new URL('../../../src/styles.css', import.meta.url), 'utf8');
+  assert.match(source, /id="mobileDrawerClose"[\s\S]*?aria-label="关闭菜单"[\s\S]*?@click="shell\.closeMobileMenu\(\)"/);
+  assert.match(styles, /body\.menu-open \.mobile-drawer-close\{[^}]*display:inline-flex/);
+});
+
 test('dashboard collapse survives an immediate refresh and reload with independent nested states', async () => {
   const vault={...empty,bookmarks:[{id:'root',kind:'folder',title:'根分组',children:[{id:'nested',kind:'folder',title:'子分组',children:[]}]}]};
   const options={owner:'account-a'};

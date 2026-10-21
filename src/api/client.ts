@@ -17,7 +17,12 @@ export class ApiError extends Error {
 
 export type ApiFetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
-export function createApiClient(fetcher: ApiFetch = (input, init) => globalThis.fetch(input, init)) {
+export const DEFAULT_API_TIMEOUT_MS = 30_000;
+
+export function createApiClient(
+  fetcher: ApiFetch = (input, init) => globalThis.fetch(input, init),
+  timeoutMs = DEFAULT_API_TIMEOUT_MS
+) {
   return async function api(path: string, options: RequestInit = {}): Promise<Response> {
     const pathname = typeof path === 'string' ? path.split(/[?#]/, 1)[0] : '';
     let decodedPath = '';
@@ -27,7 +32,29 @@ export function createApiClient(fetcher: ApiFetch = (input, init) => globalThis.
       || decodedPath.split('/').some(segment => segment === '.' || segment === '..')) {
       throw new TypeError('API 路径必须是站内绝对路径');
     }
-    const response = await fetcher(`/api${path}`, { ...options, credentials: 'same-origin', cache: 'no-store' });
+    const requestTimeoutMs = pathname === '/assets' || pathname.startsWith('/assets/')
+      ? Math.max(timeoutMs, 120_000)
+      : timeoutMs;
+    const controller = new AbortController();
+    let timedOut = false;
+    const timeoutHandle = globalThis.setTimeout(() => {
+      timedOut = true;
+      controller.abort(new DOMException('Request timed out', 'TimeoutError'));
+    }, requestTimeoutMs);
+    const abortFromCaller = () => controller.abort(options.signal?.reason);
+    if (options.signal?.aborted) abortFromCaller();
+    else options.signal?.addEventListener('abort', abortFromCaller, { once: true });
+    let response: Response;
+    try {
+      response = await fetcher(`/api${path}`, { ...options, signal: controller.signal, credentials: 'same-origin', cache: 'no-store' });
+    } catch (error) {
+      if (timedOut && !options.signal?.aborted) throw new Error('请求超时，请检查网络后重试');
+      if (error instanceof TypeError && !options.signal?.aborted) throw new Error('网络连接失败，请检查网络后重试');
+      throw error;
+    } finally {
+      globalThis.clearTimeout(timeoutHandle);
+      options.signal?.removeEventListener('abort', abortFromCaller);
+    }
     if (!response.ok) {
       const body: unknown = await response.json().catch(() => null);
       let details: ApiErrorDetails;

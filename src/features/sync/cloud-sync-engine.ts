@@ -68,10 +68,46 @@ export function createCloudSyncEngine(dependencies: CloudSyncDependencies) {
           continue;
         }
         if (state.blocked) { state.pending = snapshot; notify(state.lastError); break; }
+        let validSnapshot: VaultData;
         try {
-          const result = await dependencies.putVault(state.revision, snapshot);
+          validSnapshot = dependencies.validateVault(snapshot);
+        } catch (error) {
+          state.pending = snapshot;
+          state.lastError = messageOf(error) || '知识库内容超出当前限制；当前修改尚未保存';
+          notify(state.lastError);
+          break;
+        }
+        try {
+          let result: { revision: number };
+          try {
+            result = await dependencies.putVault(state.revision, validSnapshot);
+          } catch (error) {
+            const status = statusOf(error);
+            if (status !== 0 && status < 500) throw error;
+            // A timed-out response can follow a successful server commit. Read
+            // the authoritative vault before retrying so we never overwrite it.
+            const latest = await dependencies.getVault();
+            const remote = dependencies.validateVault(latest.data);
+            if (JSON.stringify(remote) === JSON.stringify(validSnapshot)) result = { revision: latest.revision };
+            else if (latest.revision !== state.revision) {
+              const rebased = dependencies.mergeVault(state.baseVault!, state.pending || snapshot, remote);
+              if (!rebased) {
+                state.blocked = true;
+                state.syncConflict = { base: structuredClone(state.baseVault), local: structuredClone(state.pending || snapshot), remote: structuredClone(remote), revision: latest.revision };
+                state.lastError = '修改内容存在重叠；已保留双方版本，可在设置中整理';
+                notify(state.lastError);
+                state.pending = state.pending || snapshot;
+                break;
+              }
+              state.revision = latest.revision;
+              state.baseVault = structuredClone(remote);
+              state.pending = rebased;
+              notify('正在合并已保存的修改…');
+              continue;
+            } else throw error;
+          }
           state.revision = result.revision;
-          state.baseVault = structuredClone(snapshot);
+          state.baseVault = structuredClone(validSnapshot);
           state.lastError = '';
           state.syncConflict = null;
           mergeAttempts = 0;
@@ -120,7 +156,7 @@ export function createCloudSyncEngine(dependencies: CloudSyncDependencies) {
             notify(state.lastError);
             requireAuthentication();
           } else {
-            state.lastError = `${messageOf(error) || 'Docker 服务端保存失败'}；修改仍在当前页面，请保持页面打开并重试`;
+            state.lastError = `保存未完成：${messageOf(error) || 'Docker 服务端保存失败'}；修改仍在当前页面，请保持页面打开并重试`;
           }
           notify(state.lastError);
           // Keep the newest unsaved version in memory; production never persists note bodies locally.

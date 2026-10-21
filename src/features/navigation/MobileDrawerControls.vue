@@ -18,6 +18,18 @@ onBeforeUnmount(() => document.body.classList.remove('menu-open'));
 </script>
 
 <template>
+  <Teleport to="#sidebarBrandIsland">
+    <button
+      id="mobileDrawerClose"
+      class="round-btn mobile-drawer-close"
+      type="button"
+      aria-label="关闭菜单"
+      @click="shell.closeMobileMenu()"
+    >
+      <span class="ico"><svg aria-hidden="true"><use href="#i-close" /></svg></span>
+    </button>
+  </Teleport>
+
   <Teleport to="#mobileMenuButtonIsland">
     <button
       id="menuBtn"

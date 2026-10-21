@@ -124,6 +124,17 @@ const safeLink = value => /^(?:https?:\/\/|mailto:|#|\/(?!\/))/i.test(String(val
 const Link = Mark.create({
   name: 'link',
   inclusive: false,
+  parseMarkdown: (token, helpers) => ({
+    mark: 'link',
+    attrs: { href: safeLink(token.href) ? String(token.href).trim() : null },
+    content: helpers.parseInline(token.tokens || []),
+  }),
+  renderMarkdown: (node, helpers) => {
+    const href = safeLink(node.attrs?.href) ? String(node.attrs.href).trim() : '';
+    const label = helpers.renderChildren(node.content || []);
+    if (!href) return label;
+    return `[${label.replaceAll(']', '\\]')}](${href.replaceAll(' ', '%20').replaceAll(')', '%29')})`;
+  },
   addAttributes() {
     return {
       href: {

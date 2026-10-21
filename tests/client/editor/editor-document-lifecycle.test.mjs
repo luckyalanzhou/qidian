@@ -5,7 +5,7 @@ import { mountEditorDocumentLifecycle } from '../../../src/features/editor/docum
 
 test('editor lifecycle saves on unload and warns only while edits remain unsaved', () => {
   const dom = new JSDOM('<!doctype html>');
-  const { document, Event } = dom.window;
+  const { document, Event, window } = dom.window;
   const calls = [];
   let editing = true;
   let changed = true;
@@ -18,7 +18,7 @@ test('editor lifecycle saves on unload and warns only while edits remain unsaved
   });
 
   const changedEvent = new Event('beforeunload', { cancelable: true });
-  document.dispatchEvent(changedEvent);
+  window.dispatchEvent(changedEvent);
   assert.equal(changedEvent.defaultPrevented, true);
   assert.deepEqual(calls, ['check-edits', ['save', true]]);
 
@@ -26,13 +26,13 @@ test('editor lifecycle saves on unload and warns only while edits remain unsaved
   changed = false;
   unsaved = false;
   const cleanEvent = new Event('beforeunload', { cancelable: true });
-  document.dispatchEvent(cleanEvent);
+  window.dispatchEvent(cleanEvent);
   assert.equal(cleanEvent.defaultPrevented, false);
 
   unmount();
   unsaved = true;
   const detachedEvent = new Event('beforeunload', { cancelable: true });
-  document.dispatchEvent(detachedEvent);
+  window.dispatchEvent(detachedEvent);
   assert.equal(detachedEvent.defaultPrevented, false, 'unmount removes lifecycle listeners');
   dom.window.close();
 });

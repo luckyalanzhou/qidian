@@ -23,9 +23,15 @@ test('typed API transport keeps requests same-origin, uncached and maps HTTP fai
   assert.equal(requests[0].input, '/api/vault');
   assert.equal(requests[0].init.credentials, 'same-origin');
   assert.equal(requests[0].init.cache, 'no-store');
+  assert.ok(requests[0].init.signal instanceof AbortSignal);
   await assert.rejects(() => client('https://example.com/api/vault'), TypeError);
   await assert.rejects(() => client('/vault/../auth/session'), TypeError);
   await assert.rejects(() => client('/vault/%2e%2e/auth/session'), TypeError);
+
+  const timedOut = createApiClient((_input, init) => new Promise((_resolve, reject) => {
+    init.signal.addEventListener('abort', () => reject(init.signal.reason), { once: true });
+  }), 5);
+  await assert.rejects(() => timedOut('/vault'), /请求超时/);
 
   const failed = createApiClient(async () => Response.json({ error: '版本冲突', code: 'REVISION_MISMATCH' }, { status: 409 }));
   await assert.rejects(() => failed('/vault', { method: 'PUT' }), error => {

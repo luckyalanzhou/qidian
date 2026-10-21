@@ -427,7 +427,7 @@ const workspaceContentEvents=usesVueWorkspace?null:createWorkspaceContentEvents(
  closeSearch,
  searchOpen:()=>globalSearchDataStore.open
 });
-function refreshSettingsIndicators(){appSettings.setIndicators({hasConflict:!!getSyncConflict(),hasIgnoredDraft:!!initial.ignoredDraft})}
+function refreshSettingsIndicators(message){appSettings.setIndicators({hasConflict:!!getSyncConflict(),hasIgnoredDraft:!!initial.ignoredDraft});if(message&&/(失败|尚未写入|未完成|冲突|失效|超时|不可用|未能|超[出过])/.test(message))toast(message)}
 onStatus(refreshSettingsIndicators);refreshSettingsIndicators();
 const remoteEditorRefresh=createRemoteEditorRefresh({document,setEditingDraft:note=>{navigationStore.editingDraft=note},setBaseline:value=>editorDataStore.setBaseline(value),snapshot:editorContentSnapshot,cleanBody:html=>cleanHTML(html,true),getEditor:()=>richEditor,syncToolbarState});
 const remoteVaultUpdateController=createRemoteVaultUpdateController({

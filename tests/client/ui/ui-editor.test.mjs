@@ -1204,6 +1204,14 @@ test('Markdown task lists retain checked states and inline formatting',()=>{
  assert.equal(list.child(0).textContent,'已完成 重点');let boldFound=false;list.child(0).descendants(node=>{if(node.isText&&node.text==='重点'&&node.marks.some(mark=>mark.type.name==='bold'))boldFound=true});assert.ok(boldFound);
 });
 
+test('Markdown conversion keeps safe links clickable and strips unsafe link targets',()=>{
+ const parsed=parseQidianMarkdown('参考：[OpenAI](https://openai.com) 与 [危险](javascript:alert(1))');
+ const safe=sanitizeMarkdownDocument(parsed,qidianSchema,value=>/^https?:\/\//i.test(value));
+ const document=qidianSchema.nodeFromJSON(safe);document.check();
+ const links=[];document.descendants(node=>{if(node.isText)for(const mark of node.marks)if(mark.type.name==='link')links.push({text:node.text,href:mark.attrs.href})});
+ assert.deepEqual(links,[{text:'OpenAI',href:'https://openai.com'}]);
+});
+
 test('editor outline follows headings and in-note search cycles through cross-format matches',async t=>{
  const {dom,w}=await mount();t.after(()=>dom.window.close());w.scrollBy=()=>{};w.HTMLElement.prototype.getClientRects=function(){return [this.getBoundingClientRect()]};w.Range.prototype.getClientRects=function(){return [{top:0,bottom:1,left:0,right:1}]};w.document.querySelector('#newSide').click();w.document.querySelector('[data-create-kind="note"]').click();
   assert.equal(w.document.querySelector('.editor-outline-mobile').hidden,true);assert.equal(w.document.querySelector('.edit-inspector').hidden,true);

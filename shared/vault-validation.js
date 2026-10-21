@@ -139,6 +139,6 @@ export function validateVault(input) {
     dashboardBookmarkFolders: dashboardFolderPreferences(input.dashboardBookmarkFolders),
     bookmarkDirectoryOpen: typeof input.bookmarkDirectoryOpen === 'boolean' ? input.bookmarkDirectoryOpen : null,
     bookmarkFolderStates: bookmarkFolderPreferences(input.bookmarkFolderStates) };
-  if (new TextEncoder().encode(JSON.stringify(data)).byteLength > MAX_VAULT_BYTES) throw new VaultValidationError(413, '当前整库正文上限为 1 MB，请导出备份；后续将迁移为逐篇存储');
+  if (new TextEncoder().encode(JSON.stringify(data)).byteLength > MAX_VAULT_BYTES) throw new VaultValidationError(413, '知识库内容已超过 1 MB。请先导出备份，再删除不再需要的内容；当前修改尚未保存。');
   return data;
 }
