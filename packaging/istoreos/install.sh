@@ -56,7 +56,22 @@ fi
 
 # Install LuCI's menu, configuration model, status page and root-owned manager.
 # Keep /etc/config/qidian separate so a package upgrade never resets user settings.
+cleanup_versioned_luci_pages() {
+	source_view_dir=$1
+	view_dir=/usr/lib/lua/luci/view/qidian
+	[ -d "$view_dir" ] && [ ! -L "$view_dir" ] || return 0
+	for page in "$view_dir"/*.htm; do
+		[ -f "$page" ] || continue
+		page_name=${page##*/}
+		[ ! -f "$source_view_dir/$page_name" ] || continue
+		if printf '%s\n' "$page_name" | grep -Eq '[-_.]v?[0-9]+\.[0-9]+\.[0-9]+\.htm$'; then
+			rm -f "$page"
+		fi
+	done
+}
+
 cp -a "$SCRIPT_DIR/root/usr/." /usr/
+cleanup_versioned_luci_pages "$SCRIPT_DIR/root/usr/lib/lua/luci/view/qidian"
 mkdir -p /etc/init.d
 cp -a "$SCRIPT_DIR/root/etc/init.d/." /etc/init.d/
 if [ "$HAD_CONFIG" = false ]; then
