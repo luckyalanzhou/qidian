@@ -28,7 +28,7 @@ export async function findAssetPruneCandidates(db, accountId) {
   const [vault, snapshots, assets] = await Promise.all([
     db.prepare('SELECT data FROM account_vaults WHERE account_id = ?').bind(accountId).first(),
     db.prepare('SELECT data FROM account_snapshots WHERE account_id = ?').bind(accountId).all(),
-    db.prepare('SELECT id, size FROM account_assets WHERE account_id = ?').bind(accountId).all()
+    db.prepare('SELECT id, size, created FROM account_assets WHERE account_id = ?').bind(accountId).all()
   ]);
   return { vaultData: vault?.data, snapshots: snapshots.results, assets: assets.results };
 }

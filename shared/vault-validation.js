@@ -1,5 +1,6 @@
 import { validateBookmarks } from './bookmarks.js';
 export const MAX_VAULT_BYTES = 1_000_000;
+export const MAX_NOTE_BODY_CHARS = 1_000_000;
 export class VaultValidationError extends Error {
   constructor(status, message) { super(message); this.status = status; }
 }
@@ -62,11 +63,11 @@ export function validateVault(input) {
       if (!version || typeof version !== 'object' || !Array.isArray(version.tags) || version.tags.length > 30) throw new VaultValidationError(400, '已发布版本无效');
       if (!typeIds.has(version.type) || !Number.isSafeInteger(version.updated) || version.updated < 0) throw new VaultValidationError(400, '已发布版本无效');
       return { title: text(version.title, 500, '标题'), type: version.type, category: text(version.category, 30, '分类'),
-        tags: [...new Set(version.tags.map(v => text(v, 100, '标签')))], body: text(version.body, MAX_VAULT_BYTES, '正文'),
+        tags: [...new Set(version.tags.map(v => text(v, 100, '标签')))], body: text(version.body, MAX_NOTE_BODY_CHARS, '正文'),
         source: text(version.source || '', 2048, '来源'), updated: version.updated };
     };
     const note = { id, title: text(n.title, 500, '标题'), type: n.type, category: text(n.category, 30, '分类'),
-      tags: [...new Set(n.tags.map(v => text(v, 100, '标签')))], body: text(n.body, MAX_VAULT_BYTES, '正文'),
+      tags: [...new Set(n.tags.map(v => text(v, 100, '标签')))], body: text(n.body, MAX_NOTE_BODY_CHARS, '正文'),
       source: text(n.source || '', 2048, '来源'), created: n.created, updated: n.updated, pinned: !!n.pinned };
     if (n.status !== undefined) note.status = status;
     if (status === 'draft') note.publishedAt = null;

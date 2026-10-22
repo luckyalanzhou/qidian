@@ -200,7 +200,7 @@ test('restoring a history revision downloads the current full backup before queu
   w.document.querySelector('#actionDialogConfirm').click();
   await new Promise(resolve => setTimeout(resolve, 30));
   assert.equal(restoreOptions.requestedBackup, '12');
-  assert.equal(w.document.querySelector('#toast').textContent, '');
+  assert.equal(w.document.querySelector('#toast').textContent, '历史版本已恢复');
   assert.equal(restoreOptions.exportedBeforeRestore.notes[0].title, '当前版本');
   assert.deepEqual(restoreOptions.backupOrder,['download','snapshot'],'the confirmed full backup precedes the server snapshot and replacement');
   assert.equal(saves.at(-1).notes[0].title, '历史版本');

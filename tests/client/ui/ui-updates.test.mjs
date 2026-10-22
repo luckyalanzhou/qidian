@@ -66,6 +66,54 @@ test('topbar version badge shows release details and the unified action refreshe
   dom.window.close();
 });
 
+test('version dialog moves focus inside, traps Tab, and restores focus to its trigger', async t => {
+  const { dom, w } = await mount(empty, { versionInfo:{
+    currentVersion:'0.1.6',latestVersion:'0.1.6',updateAvailable:false,canUpdateDevice:true,
+    installerAvailable:true,updaterAvailable:true,releaseUrl:'https://github.com/luckyalanzhou/qidian/releases',notes:''
+  } });
+  t.after(() => dom.window.close());
+  const trigger = w.document.querySelector('#versionButton');
+  trigger.focus();
+  trigger.click();
+  await new Promise(resolve => setTimeout(resolve, 0));
+
+  const overlay = w.document.querySelector('#versionInfoOverlay');
+  const close = overlay.querySelector('[data-close="versionInfoOverlay"]');
+  const release = overlay.querySelector('#releaseLink');
+  const action = overlay.querySelector('#checkAndUpdateVersion');
+  assert.equal(w.document.activeElement, close, `opening the modal moves focus to its close control; got ${w.document.activeElement.outerHTML}`);
+
+  const commandHotkey = new w.KeyboardEvent('keydown', { key:'k', ctrlKey:true, bubbles:true, cancelable:true });
+  close.dispatchEvent(commandHotkey);
+  assert.equal(commandHotkey.defaultPrevented, true, 'the modal suppresses the global Ctrl+K shortcut');
+  assert.equal(w.document.querySelector('.command-palette-backdrop'), null, 'Ctrl+K does not open another modal above the version dialog');
+
+  action.focus();
+  const forwardTab = new w.KeyboardEvent('keydown', { key:'Tab', bubbles:true, cancelable:true });
+  action.dispatchEvent(forwardTab);
+  assert.equal(forwardTab.defaultPrevented, true, 'Tab from the last control is trapped');
+  assert.equal(w.document.activeElement, close);
+
+  close.focus();
+  const backwardTab = new w.KeyboardEvent('keydown', { key:'Tab', shiftKey:true, bubbles:true, cancelable:true });
+  close.dispatchEvent(backwardTab);
+  assert.equal(backwardTab.defaultPrevented, true, 'Shift+Tab from the first control is trapped');
+  assert.equal(w.document.activeElement, action);
+
+  release.focus();
+  overlay.querySelector('[data-close="versionInfoOverlay"]').click();
+  assert.equal(w.document.activeElement, trigger, 'closing the modal restores focus to its opener');
+
+  trigger.focus();
+  trigger.click();
+  await new Promise(resolve => setTimeout(resolve, 0));
+  const escape = new w.KeyboardEvent('keydown', { key:'Escape', bubbles:true, cancelable:true });
+  overlay.querySelector('[data-close="versionInfoOverlay"]').dispatchEvent(escape);
+  assert.equal(escape.defaultPrevented, true, 'Escape is handled by the active version dialog');
+  assert.equal(overlay.classList.contains('open'), false, 'Escape closes the version dialog');
+  assert.equal(w.document.activeElement, trigger, 'Escape also restores focus to the opener');
+});
+
 test('version details reuse the startup release check and refresh cached information without blocking the dialog', async () => {
   let resolveVersion,versionChecks=0;
   const info={currentVersion:'0.1.5',latestVersion:'0.1.6',updateAvailable:true,canUpdateDevice:true,installerAvailable:true,updaterAvailable:true,releaseUrl:'https://github.com/luckyalanzhou/qidian/releases/tag/v0.1.6',notes:'## 新版本说明\n\n修复问题。'};

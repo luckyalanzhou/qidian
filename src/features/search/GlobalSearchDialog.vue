@@ -5,6 +5,7 @@ import { useNavigationActionsStore } from '../navigation/navigation-actions-stor
 
 const store = useGlobalSearchStore();
 const navigationActions = useNavigationActionsStore();
+const dialog = ref<HTMLElement | null>(null);
 const input = ref<HTMLInputElement | null>(null);
 const returnFocus = ref<HTMLElement | null>(null);
 let restoreFocusOnClose = false;
@@ -34,9 +35,25 @@ function closeFromOutside() {
 function handleKeydown(event: KeyboardEvent) {
   if (event.key === 'Escape') {
     event.preventDefault();
+    event.stopPropagation();
     closeFromEscape();
   } else if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
-    store.close();
+    event.preventDefault();
+    event.stopPropagation();
+    closeFromEscape();
+  } else if (event.key === 'Tab') {
+    const focusable = [...(dialog.value?.querySelectorAll<HTMLElement>('input:not([disabled]), button:not([disabled]), a[href]') || [])]
+      .filter(element => !element.hidden);
+    const first = focusable[0];
+    const last = focusable.at(-1);
+    if (!first || !last) return;
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
   }
 }
 </script>
@@ -46,8 +63,10 @@ function handleKeydown(event: KeyboardEvent) {
     <div v-if="store.open" class="search-dismiss-layer" @click.self="closeFromOutside">
       <section
         id="switcher"
+        ref="dialog"
         class="switcher open"
         role="dialog"
+        aria-modal="true"
         aria-label="搜索笔记和书签"
         @keydown="handleKeydown"
       >

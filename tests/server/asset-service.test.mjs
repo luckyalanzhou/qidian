@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createAssetService } from '../../server/application/asset-service.js';
+import { ASSET_PRUNE_GRACE_MS, createAssetService } from '../../server/application/asset-service.js';
 
 const referenced = '11111111-1111-4111-8111-111111111111';
 const historical = '22222222-2222-4222-8222-222222222222';
@@ -31,17 +31,40 @@ test('asset service lists, creates and reconstructs account-scoped attachments',
 
 test('asset pruning preserves references in the current vault and retained snapshots', async () => {
   let deletion;
+  const now = ASSET_PRUNE_GRACE_MS * 10;
   const service = createAssetService({
     findAssetPruneCandidates: async (db, accountId) => ({
       vaultData: `note image /api/assets/${referenced}`,
       snapshots: [{ data: `historical /api/assets/${historical}?download=1` }],
-      assets: [{ id: referenced, size: 10 }, { id: historical, size: 20 }, { id: orphan, size: 30 }]
+      assets: [
+        { id: referenced, size: 10, created: now - ASSET_PRUNE_GRACE_MS - 1 },
+        { id: historical, size: 20, created: now - ASSET_PRUNE_GRACE_MS - 1 },
+        { id: orphan, size: 30, created: now - ASSET_PRUNE_GRACE_MS - 1 }
+      ]
     }),
     deleteAccountAssets: async (db, accountId, ids) => { deletion = { accountId, ids }; }
-  });
+  }, { now: () => now });
 
   assert.deepEqual(await service.prune({}, 'account-a'), { removed: 1, bytes: 30 });
   assert.deepEqual(deletion, { accountId: 'account-a', ids: [orphan] });
+});
+
+test('asset pruning keeps recent unreferenced uploads during the cross-device save window', async () => {
+  const now = ASSET_PRUNE_GRACE_MS * 10;
+  let deleted = [];
+  const service = createAssetService({
+    findAssetPruneCandidates: async () => ({
+      vaultData: '', snapshots: [],
+      assets: [
+        { id: orphan, size: 30, created: now - ASSET_PRUNE_GRACE_MS - 1 },
+        { id: '44444444-4444-4444-8444-444444444444', size: 40, created: now - ASSET_PRUNE_GRACE_MS + 1 }
+      ]
+    }),
+    deleteAccountAssets: async (_db, _accountId, ids) => { deleted = ids; }
+  }, { now: () => now });
+
+  assert.deepEqual(await service.prune({}, 'account-a'), { removed: 1, bytes: 30 });
+  assert.deepEqual(deleted, [orphan]);
 });
 
 test('asset service maps quota, missing-file and corrupt-chunk outcomes consistently', async () => {

@@ -385,39 +385,20 @@ set_config() {
 prepare_update_control() {
 	data_dir=$1
 	validate_path "$data_dir"
-	control_dir=$data_dir/.qidian-update-control
-	legacy_control=$INSTALL_DIR/update-control
-	legacy_source=$legacy_control
-	if [ -L "$legacy_control" ]; then
-		legacy_source=$(readlink "$legacy_control" 2>/dev/null || true)
-	fi
+	# This directory is not mounted from the container's writable data volume.
+	control_dir=$INSTALL_DIR/update-control
+	[ ! -L "$INSTALL_DIR" ] || fail '设备更新目录不能是符号链接。'
+	# Older releases pointed this path into /data. Remove only the link itself;
+	# never follow or migrate files supplied by the container.
+	if [ -L "$control_dir" ]; then rm -f "$control_dir" || fail '无法移除旧的更新控制目录链接。'; fi
+	[ ! -e "$control_dir" ] || [ -d "$control_dir" ] || fail '更新控制目录路径类型无效。'
 	mkdir -p "$control_dir"
-	if [ -n "$legacy_source" ] && [ "$legacy_source" != "$control_dir" ] && [ -d "$legacy_source" ]; then
-		for part in inbox outbox; do
-			old_dir=$legacy_source/$part
-			new_dir=$control_dir/$part
-			[ -d "$old_dir" ] || continue
-			if [ ! -e "$new_dir" ]; then
-				mv "$old_dir" "$new_dir"
-				continue
-			fi
-			mkdir -p "$new_dir"
-			if [ "$part" = inbox ] && [ -f "$old_dir/update-request" ] && [ ! -e "$new_dir/update-request" ]; then
-				mv "$old_dir/update-request" "$new_dir/update-request"
-			fi
-			if [ "$part" = outbox ]; then
-				for filename in update.log update-status; do
-					[ ! -f "$old_dir/$filename" ] || mv -f "$old_dir/$filename" "$new_dir/$filename"
-				done
-				rm -f "$old_dir/update-agent-ready"
-			fi
-			rmdir "$old_dir" 2>/dev/null || true
-		done
-		if [ -L "$legacy_control" ]; then rm -f "$legacy_control"; fi
-		rmdir "$legacy_source" 2>/dev/null || true
-		if [ ! -e "$legacy_control" ]; then ln -s "$control_dir" "$legacy_control"; fi
-	fi
-	mkdir -p "$control_dir/inbox" "$control_dir/outbox"
+	for part in inbox outbox; do
+		part_dir=$control_dir/$part
+		if [ -L "$part_dir" ]; then rm -f "$part_dir" || fail "无法移除不安全的更新目录链接：$part"; fi
+		[ ! -e "$part_dir" ] || [ -d "$part_dir" ] || fail "更新目录路径类型无效：$part"
+		mkdir -p "$part_dir"
+	done
 	chown root:1000 "$control_dir/inbox"
 	chmod 1730 "$control_dir/inbox"
 	chown root:root "$control_dir/outbox"

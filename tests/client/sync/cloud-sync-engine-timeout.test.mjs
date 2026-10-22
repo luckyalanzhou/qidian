@@ -82,3 +82,47 @@ test('an oversized vault is rejected before network access and retained for reco
   assert.match(state.lastError, /先导出备份/);
   assert.ok(messages.includes(state.lastError));
 });
+
+test('a failed local draft write retains the latest snapshot for an explicit retry', async t => {
+  const server = await createViteTestServer({
+    configFile: false,
+    root: fileURLToPath(new URL('../../../', import.meta.url)),
+    server: { middlewareMode: true },
+    appType: 'custom'
+  });
+  t.after(() => server.close());
+  const { createCloudSyncEngine } = await server.ssrLoadModule('/src/features/sync/cloud-sync-engine.ts');
+  const snapshot = { notes: [{ id: 'one', body: 'still recoverable' }] };
+  const saved = [];
+  let writes = 0;
+  const state = {
+    revision: 0, pending: null, draining: false, blocked: false, requiresLogin: false,
+    baseVault: null, syncConflict: null, lastError: '', refreshing: false, owner: 'local'
+  };
+  const engine = createCloudSyncEngine({
+    dev: true, state,
+    getStatusListener: () => () => undefined,
+    getAuthenticationListener: () => () => undefined,
+    getRemoteUpdateListener: () => () => undefined,
+    saveLocalDraft: async vault => {
+      writes++;
+      if (writes === 1) throw new Error('IndexedDB temporarily unavailable');
+      saved.push(structuredClone(vault));
+    },
+    clearLocalDraft: async () => undefined,
+    getVaultRevision: async () => ({ revision: 0 }),
+    getVault: async () => ({ revision: 0, data: snapshot }),
+    putVault: async () => ({ revision: 1 }),
+    validateVault: value => value,
+    mergeVault: () => null
+  });
+
+  await assert.rejects(engine.commitSave(snapshot), /本地草稿保存失败/);
+  assert.deepEqual(state.pending, snapshot);
+  assert.equal(engine.retrySync(), true);
+  assert.equal(await engine.flush(), true);
+  assert.equal(writes, 2);
+  assert.deepEqual(saved, [snapshot]);
+  assert.equal(state.pending, null);
+  assert.equal(state.lastError, '');
+});

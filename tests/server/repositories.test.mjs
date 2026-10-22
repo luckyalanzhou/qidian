@@ -91,6 +91,7 @@ test('asset repository chunks uploads and scopes metadata, content, pruning and 
   const sql = calls.filter(call => call.sql).map(call => call.sql);
   assert.ok(sql.every(statement => /account_id/.test(statement)), 'every asset mutation carries an account ID');
   assert.ok(sql.filter(statement => /^(SELECT|DELETE)/.test(statement)).every(statement => /WHERE account_id = \?/.test(statement)), 'every asset read and delete filters by account');
+  assert.ok(sql.some(statement => /SELECT id, size, created FROM account_assets/.test(statement)), 'pruning reads asset ages before deleting unreferenced uploads');
   assert.deepEqual(calls.at(-1).batch[0].parameters, ['account-a', 'asset-1']);
 });
 

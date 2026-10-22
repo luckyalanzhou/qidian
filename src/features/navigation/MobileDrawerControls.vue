@@ -1,12 +1,21 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, watch } from 'vue';
 import { useWorkspaceShellStore } from './workspace-shell-store';
+import { createMobileMenuFocusController } from './mobile-menu-focus-controller.ts';
 
 const shell = useWorkspaceShellStore();
+const focusController = createMobileMenuFocusController({
+  document,
+  isOpen: () => shell.mobileMenuOpen,
+  close: () => shell.closeMobileMenu(),
+  getSidebar: () => document.querySelector<HTMLElement>('#sidebar'),
+  getMenuButton: () => document.querySelector<HTMLElement>('#menuBtn'),
+  getMain: () => document.querySelector<HTMLElement>('#main'),
+  scheduleFocus: callback => { void nextTick(callback); }
+});
 
-function closeFromShade() {
-  shell.closeMobileMenu();
-  void nextTick(() => document.querySelector<HTMLElement>('#menuBtn')?.focus({ preventScroll: true }));
+function closeDrawer() {
+  focusController.close(true);
 }
 
 watch(() => shell.mobileMenuOpen, open => {
@@ -24,7 +33,7 @@ onBeforeUnmount(() => document.body.classList.remove('menu-open'));
       class="round-btn mobile-drawer-close"
       type="button"
       aria-label="关闭菜单"
-      @click="shell.closeMobileMenu()"
+      @click="closeDrawer"
     >
       <span class="ico"><svg aria-hidden="true"><use href="#i-close" /></svg></span>
     </button>
@@ -49,7 +58,7 @@ onBeforeUnmount(() => document.body.classList.remove('menu-open'));
       id="mobileShade"
       class="mobile-shade"
       :aria-hidden="!shell.mobileMenuOpen"
-      @click="closeFromShade"
+      @click="closeDrawer"
     />
   </Teleport>
 </template>

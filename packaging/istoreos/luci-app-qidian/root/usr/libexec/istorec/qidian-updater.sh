@@ -2,6 +2,7 @@
 
 REPOSITORY=luckyalanzhou/qidian
 INSTALL_DIR=/opt/qidian
+CONTROL_ROOT=$INSTALL_DIR/update-control
 LOCK_DIR=/tmp/qidian-web-update.lock
 OPERATION_LOCK=/tmp/qidian-operation.lock
 
@@ -69,8 +70,7 @@ run_update() {
 	job_file=$1
 	lock_dir=$2
 	status_dir=$3
-	case "$status_dir" in /*) ;; *) printf '更新状态目录无效。\n' >&2; return 1 ;; esac
-	[ -d "$status_dir" ] || { printf '更新状态目录不存在。\n' >&2; return 1; }
+	[ "$status_dir" = "$CONTROL_ROOT/outbox" ] && [ ! -L "$status_dir" ] && [ -d "$status_dir" ] || { printf '更新状态目录无效。\n' >&2; return 1; }
 	STATE_FILE=$status_dir/update-status
 	LOG_FILE=$status_dir/update.log
 	work_dir=
@@ -164,9 +164,11 @@ run_update() {
 
 serve() {
 	CONTROL_DIR=${1:-$(uci -q get qidian.main.update_control_path 2>/dev/null || true)}
-	[ -n "$CONTROL_DIR" ] || return 1
+	[ "$CONTROL_DIR" = "$CONTROL_ROOT" ] || return 1
 	REQUEST_DIR=$CONTROL_DIR/inbox
 	STATUS_DIR=$CONTROL_DIR/outbox
+	[ ! -L "$CONTROL_DIR" ] && [ ! -L "$REQUEST_DIR" ] && [ ! -L "$STATUS_DIR" ] || return 1
+	[ -d "$REQUEST_DIR" ] && [ -d "$STATUS_DIR" ] || return 1
 	STATE_FILE=$STATUS_DIR/update-status
 	LOG_FILE=$STATUS_DIR/update.log
 	REQUEST_FILE=$REQUEST_DIR/update-request

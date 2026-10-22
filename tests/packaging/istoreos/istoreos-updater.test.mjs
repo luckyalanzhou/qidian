@@ -17,12 +17,12 @@ test('device updater clears stale output and records failures in its configured 
   assert.ok(entry > 0);
   const bash = process.platform === 'win32' ? 'C:/Program Files/Git/bin/bash.exe' : 'bash';
   const result = spawnSync(bash, ['-s'], {
-    input: `${source.slice(0, entry)}\nif command -v cygpath >/dev/null 2>&1; then QIDIAN_TEST_ROOT=$(cygpath -u "$QIDIAN_TEST_ROOT"); fi\nOPERATION_LOCK="$QIDIAN_TEST_ROOT/operation.lock"\ndownload() { return 1; }\nrun_update "$QIDIAN_TEST_ROOT/request" "$QIDIAN_TEST_ROOT/web.lock" "$QIDIAN_TEST_ROOT/outbox"\n`,
+    input: `${source.slice(0, entry)}\nif command -v cygpath >/dev/null 2>&1; then QIDIAN_TEST_ROOT=$(cygpath -u "$QIDIAN_TEST_ROOT"); fi\nCONTROL_ROOT=$QIDIAN_TEST_ROOT\nOPERATION_LOCK="$QIDIAN_TEST_ROOT/operation.lock"\ndownload() { return 1; }\nrun_update "$QIDIAN_TEST_ROOT/request" "$QIDIAN_TEST_ROOT/web.lock" "$QIDIAN_TEST_ROOT/outbox"\n`,
     env: { ...process.env, QIDIAN_TEST_ROOT:root.replaceAll('\\', '/') },
     encoding:'utf8', timeout:15000
   });
   assert.ifError(result.error);
-  assert.equal(result.status, 1);
+  assert.equal(result.status, 1, `updater subprocess status=${result.status}; stdout=${result.stdout}; stderr=${result.stderr}`);
   assert.doesNotMatch(result.stderr, /can't create|No such file/);
   const log = await readFile(join(outbox, 'update.log'), 'utf8');
   assert.doesNotMatch(log, /OLD UPDATE SUCCEEDED/);

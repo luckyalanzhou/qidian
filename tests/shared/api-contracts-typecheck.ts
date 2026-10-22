@@ -28,7 +28,14 @@ const typedResponses = {
   updateStatus: { ...examples.responses.updateStatus, state: 'idle' }
 } satisfies ApiResponseMap;
 
+// @ts-expect-error API mutation responses are only successful when ok is true.
+const failedAvatarResponse: ApiResponseMap['accountAvatarMutation'] = { ok: false };
+// @ts-expect-error Password changes always revoke other sessions.
+const incompletePasswordResponse: ApiResponseMap['accountPasswordMutation'] = { ok: true };
+
 void (null as unknown as RequestExamplesCoverTheTypes);
 void (null as unknown as ResponseExamplesCoverTheTypes);
 void typedRequests;
 void typedResponses;
+void failedAvatarResponse;
+void incompletePasswordResponse;

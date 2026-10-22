@@ -22,6 +22,15 @@ export type BackupWorkflowDependencies = {
 };
 
 export function createBackupWorkflows(dependencies: BackupWorkflowDependencies) {
+  async function pruneAssetsWithWarning() {
+    try {
+      await dependencies.pruneAssets();
+      return '';
+    } catch (error) {
+      return `，附件清理未完成：${(error as Error)?.message || '请稍后重试'}`;
+    }
+  }
+
   async function downloadSnapshot(revision: BackupRevision) {
     try {
       const snapshot = await dependencies.getBackup(revision);
@@ -53,7 +62,8 @@ export function createBackupWorkflows(dependencies: BackupWorkflowDependencies) 
       });
       await dependencies.commitSave(restored);
       dependencies.replaceWorkspace(restored, 'restore');
-      await dependencies.pruneAssets();
+      const cleanupWarning = await pruneAssetsWithWarning();
+      dependencies.notify(cleanupWarning ? `历史版本已恢复${cleanupWarning}` : '历史版本已恢复');
     } catch (error) {
       dependencies.notify(`恢复未完成：${(error as Error)?.message || '请稍后重试'}`);
     }
@@ -93,10 +103,9 @@ export function createBackupWorkflows(dependencies: BackupWorkflowDependencies) 
       });
       await dependencies.commitSave(candidate);
       dependencies.replaceWorkspace(candidate, 'import');
-      await dependencies.pruneAssets();
-      dependencies.notify(dependencies.localPreview ? '导入完成，本地预览数据已更新' : '导入完成，知识库已更新');
+      const cleanupWarning = await pruneAssetsWithWarning();
+      dependencies.notify(`${dependencies.localPreview ? '导入完成，本地预览数据已更新' : '导入完成，知识库已更新'}${cleanupWarning}`);
     } catch (error) {
-      await dependencies.pruneAssets().catch(() => {});
       dependencies.notify(`导入失败：${(error as Error)?.message || '请稍后重试'}`);
     } finally {
       dependencies.clearImportFile();

@@ -63,6 +63,8 @@ export function createEditorDraftController(dependencies: EditorDraftControllerD
 
     const transient = dependencies.getTransientNewNoteId() === note.id;
     const baseline = dependencies.getBaseline();
+    if (!transient && baseline && dependencies.snapshot(note) === baseline
+      && (!dependencies.isDraft(note) || dependencies.hasDraftContent(note))) return true;
     const unchangedNew = transient && !!baseline && dependencies.snapshot(note) === baseline;
     const result = dependencies.mutateVault(vault => saveNoteDraft(vault, note, {
         transient,

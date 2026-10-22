@@ -61,7 +61,14 @@ export function createCloudSyncEngine(dependencies: CloudSyncDependencies) {
         const snapshot = state.pending;
         state.pending = null;
         if (dependencies.dev) {
-          await dependencies.saveLocalDraft(snapshot, state.revision, state.owner);
+          try {
+            await dependencies.saveLocalDraft(snapshot, state.revision, state.owner);
+          } catch {
+            state.pending = state.pending || snapshot;
+            state.lastError = '本地草稿保存失败；修改仍保留在当前页面，请立即导出或重试';
+            notify(state.lastError);
+            break;
+          }
           state.baseVault = structuredClone(snapshot);
           state.lastError = '';
           if (!state.pending) notify('✓ 已保存到此设备（开发模式）');

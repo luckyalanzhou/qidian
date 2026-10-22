@@ -39,11 +39,10 @@ flowchart LR
 /data/
 ├── qidian.sqlite
 ├── qidian.sqlite-wal / qidian.sqlite-shm   运行时文件
-├── migration-backups/                      结构迁移前的数据库副本
-└── .qidian-update-control/                 OpenWrt / iStoreOS 更新请求、状态和日志
+└── migration-backups/                      结构迁移前的数据库副本
 ```
 
-iStoreOS 将当前设备 Docker Root Dir 下的 `volumes/qidian/data` 挂载到 `/data`。通用 Docker 将 `qidian-data` 命名卷挂载到 `/data`。路径由部署端决定，应用代码不写死宿主目录。
+iStoreOS 将当前设备 Docker Root Dir 下的 `volumes/qidian/data` 挂载到 `/data`。通用 Docker 将 `qidian-data` 命名卷挂载到 `/data`。路径由部署端决定，应用代码不写死宿主目录。iStoreOS 的宿主更新请求目录单独保存在 `/opt/qidian/update-control`，不与容器可写数据卷共享。
 
 SQLite 启动参数包含外键、5 秒 busy timeout、WAL 和 FULL synchronous。服务启动时按文件名顺序执行尚未应用的迁移；迁移前复制数据库到 `migration-backups`。旧的单人表与早期认证字段保留，是为了兼容已有设备升级，不能作为“未使用文件”删除。
 

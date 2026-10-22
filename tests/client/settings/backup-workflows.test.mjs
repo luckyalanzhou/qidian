@@ -38,6 +38,20 @@ test('history restore backs up and snapshots current data before the SQLite repl
   assert.ok(names.indexOf('commit-save') < names.indexOf('replace-workspace'));
   assert.deepEqual(harness.events.find(event => event[0] === 'replace-workspace')[1].notes[0].body, 'safe:<p>正文</p>');
   assert.equal(harness.events.find(event => event[0] === 'replace-workspace')[2], 'restore');
+  assert.equal(harness.events.find(event => event[0] === 'notify')[1], '历史版本已恢复');
+});
+
+test('history restore reports committed success when post-restore asset cleanup fails', async () => {
+  const harness = makeHarness({ pruneError: '磁盘暂时不可用' });
+
+  await harness.workflows.restoreSnapshot(12);
+
+  const names = harness.events.map(event => event[0]);
+  assert.ok(names.indexOf('commit-save') < names.indexOf('replace-workspace'));
+  const notice = harness.events.find(event => event[0] === 'notify')[1];
+  assert.match(notice, /^历史版本已恢复/);
+  assert.match(notice, /附件清理未完成：磁盘暂时不可用/);
+  assert.doesNotMatch(notice, /恢复未完成/);
 });
 
 test('cancelled history restore performs no backup, snapshot, or replacement', async () => {
@@ -68,6 +82,20 @@ test('backup import saves the editor, exports a recovery copy, then commits befo
   assert.equal(names.at(-1), 'clear-import-file');
 });
 
+test('backup import reports committed success when post-import asset cleanup fails', async () => {
+  const harness = makeHarness({ pruneError: '磁盘暂时不可用' });
+
+  await harness.workflows.importBackup({ name: 'backup.json' });
+
+  const names = harness.events.map(event => event[0]);
+  assert.ok(names.indexOf('commit-save') < names.indexOf('replace-workspace'));
+  const notice = harness.events.find(event => event[0] === 'notify')[1];
+  assert.match(notice, /^导入完成，知识库已更新/);
+  assert.match(notice, /附件清理未完成：磁盘暂时不可用/);
+  assert.doesNotMatch(notice, /导入失败/);
+  assert.equal(names.at(-1), 'clear-import-file');
+});
+
 test('local preview backup import does not claim to create a server snapshot or write Docker data', async () => {
   const harness = makeHarness({ localPreview: true });
   await harness.workflows.importBackup({ name: 'backup.json' });
@@ -81,6 +109,16 @@ test('cancelled backup import never changes data and still clears the file input
   const harness = makeHarness({ confirmed: false });
   await harness.workflows.importBackup({ name: 'backup.json' });
   assert.deepEqual(harness.events.map(event => event[0]), ['confirm', 'clear-import-file']);
+});
+
+test('failed backup import does not prune account-wide attachments', async () => {
+  const harness = makeHarness({ readError: '备份文件无效' });
+
+  await harness.workflows.importBackup({ name: 'invalid.zip' });
+
+  assert.equal(harness.events.some(event => event[0] === 'prune-assets'), false);
+  assert.equal(harness.events.some(event => event[0] === 'replace-workspace'), false);
+  assert.ok(harness.events.some(event => event[0] === 'notify' && /导入失败/.test(event[1])));
 });
 
 test('full export falls back to a JSON copy if the complete backup export fails', async () => {

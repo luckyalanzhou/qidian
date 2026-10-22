@@ -5,6 +5,7 @@ import { handle } from '../../server/api.js';
 import { PASSWORD_ITERATIONS, SESSION_IDLE_TTL, SESSION_TTL, sessionTokenFromCookie, hashSession } from '../../server/auth.js';
 import { makeRegistrationCredential, makeLoginVerifier } from '../../src/features/auth/credentials.js';
 import { sqliteAdapter } from '../../server/adapters/sqlite-adapter.mjs';
+import { ASSET_PRUNE_GRACE_MS } from '../../server/application/asset-service.js';
 import { isApiErrorResponse } from '../../shared/api-contracts.js';
 
 let env, alice, bob;
@@ -465,6 +466,8 @@ test('manual snapshots protect referenced attachments while orphan pruning recla
   const snapshot = await call('/backups','POST');
   assert.equal(snapshot.status,201);
   assert.equal((await snapshot.json()).revision,current.revision+1);
+  await env.DB.prepare('UPDATE account_assets SET created = ? WHERE account_id = ? AND id = ?')
+    .bind(Date.now() - ASSET_PRUNE_GRACE_MS - 1, alice.data.id, orphan.id).run();
 
   const firstPrune = await call('/assets/prune','POST');
   assert.equal(firstPrune.status,200);
@@ -477,6 +480,8 @@ test('manual snapshots protect referenced attachments while orphan pruning recla
   await call('/assets/prune','POST');
   assert.equal((await call(`/assets/${referenced.id}`)).status,200,'retained snapshots keep historical attachment references valid');
   await env.DB.prepare('DELETE FROM account_snapshots WHERE account_id = ?').bind(alice.data.id).run();
+  await env.DB.prepare('UPDATE account_assets SET created = ? WHERE account_id = ? AND id = ?')
+    .bind(Date.now() - ASSET_PRUNE_GRACE_MS - 1, alice.data.id, referenced.id).run();
   const finalPrune = await (await call('/assets/prune','POST')).json();
   assert.ok(finalPrune.removed>=1);
   assert.equal((await call(`/assets/${referenced.id}`)).status,404);

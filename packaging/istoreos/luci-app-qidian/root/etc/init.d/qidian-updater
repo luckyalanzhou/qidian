@@ -5,7 +5,8 @@ USE_PROCD=1
 
 start_service() {
 	control_dir=$(/usr/libexec/istorec/qidian-updater.sh control-dir 2>/dev/null || true)
-	case "$control_dir" in /*) ;; *) return 0 ;; esac
+	[ "$control_dir" = /opt/qidian/update-control ] || return 0
+	[ ! -L "$control_dir" ] && [ ! -L "$control_dir/inbox" ] && [ ! -L "$control_dir/outbox" ] || return 0
 	mkdir -p "$control_dir/inbox" "$control_dir/outbox"
 	chown root:1000 "$control_dir/inbox"
 	chmod 1730 "$control_dir/inbox"
@@ -19,5 +20,7 @@ start_service() {
 
 stop_service() {
 	control_dir=$(/usr/libexec/istorec/qidian-updater.sh control-dir 2>/dev/null || true)
-	case "$control_dir" in /*) rm -f "$control_dir/outbox/update-agent-ready" ;; esac
+	[ "$control_dir" = /opt/qidian/update-control ] || return 0
+	[ ! -L "$control_dir" ] && [ ! -L "$control_dir/outbox" ] || return 0
+	rm -f "$control_dir/outbox/update-agent-ready"
 }

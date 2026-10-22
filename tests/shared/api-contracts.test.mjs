@@ -23,3 +23,8 @@ test('shared API response examples cover and satisfy every runtime contract', ()
     assert.equal(isApiResponse(name, value), true, `响应契约 ${name} 的示例未通过运行时校验`);
   }
 });
+
+test('account mutation response contracts reject incomplete or unsuccessful results', () => {
+  assert.equal(isApiResponse('accountAvatarMutation', { ok: false }), false);
+  assert.equal(isApiResponse('accountPasswordMutation', { ok: true }), false);
+});

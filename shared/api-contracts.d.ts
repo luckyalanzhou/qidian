@@ -88,7 +88,8 @@ export type UpdateStatus = {
 };
 export type AccountProfile = { id: string; username: string; created: number; avatarMime: string | null };
 export type PasswordSalt = { salt: string; iterations: number };
-export type AccountMutation = { ok: boolean; mime?: string; otherSessionsRevoked?: boolean };
+export type AccountAvatarMutation = { ok: true; mime?: string };
+export type AccountPasswordMutation = { ok: true; otherSessionsRevoked: true };
 export type AssetInfo = { id: string; name: string; mime: string; size: number; created: number };
 export type UploadedAsset = AssetInfo & { url: string };
 export type AssetPruneResult = { removed: number; bytes: number };
@@ -116,9 +117,9 @@ export type ApiResponseMap = {
   authVerification: AuthVerification;
   authLogout: { ok: true };
   accountProfile: AccountProfile;
-  accountAvatarMutation: AccountMutation;
+  accountAvatarMutation: AccountAvatarMutation;
   passwordSalt: PasswordSalt;
-  accountPasswordMutation: AccountMutation & { otherSessionsRevoked: true };
+  accountPasswordMutation: AccountPasswordMutation;
   revision: RevisionResponse;
   vault: VaultResponse;
   backupSummaries: BackupSummary[];

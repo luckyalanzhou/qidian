@@ -39,6 +39,7 @@ export function createSystemUpdateController(dependencies: Dependencies) {
   let lastUpdateStatus: UpdateStatus | null = null;
   let updateTerminalBaseline = '';
   let updateRefreshDeadline = 0;
+  let versionDialogReturnFocus: HTMLElement | null = null;
 
   try {
     updateTargetVersion = window.sessionStorage.getItem('qidian.pendingDeviceUpdate') || '';
@@ -57,6 +58,22 @@ export function createSystemUpdateController(dependencies: Dependencies) {
       const log = $('#updateProgressLog');
       updateLogFollowing = !!log && log.scrollHeight - log.scrollTop - log.clientHeight < 24;
     });
+  }
+
+  function handleVersionDialogKeydown(event: KeyboardEvent) {
+    const overlay = $('#versionInfoOverlay');
+    if (!overlay?.classList.contains('open')) return;
+
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      event.stopPropagation();
+      closeVersionInfo();
+      return;
+    }
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+      event.preventDefault();
+      event.stopPropagation();
+    }
   }
 
   function renderVersionBadge(info: Pick<SystemVersion, 'currentVersion' | 'updateAvailable' | 'latestVersion'> | null) {
@@ -412,7 +429,15 @@ export function createSystemUpdateController(dependencies: Dependencies) {
     dependencies.closeAccountMenu();
     dependencies.closeAppSettings();
     ensureVersionInfoUI();
-    $('#versionInfoOverlay')?.classList.add('open');
+    const overlay = $('#versionInfoOverlay');
+    if (overlay && !overlay.classList.contains('open')) {
+      const HTMLElementType = document.defaultView?.HTMLElement;
+      versionDialogReturnFocus = HTMLElementType && document.activeElement instanceof HTMLElementType
+        ? document.activeElement
+        : null;
+      overlay.classList.add('open');
+      overlay.querySelector<HTMLElement>('[data-close="versionInfoOverlay"]')?.focus();
+    }
     if (versionInfo) renderVersionInfo(versionInfo);
     void checkSystemVersion();
   }
@@ -475,7 +500,11 @@ export function createSystemUpdateController(dependencies: Dependencies) {
   }
 
   function closeVersionInfo() {
-    $('#versionInfoOverlay')?.classList.remove('open');
+    const overlay = $('#versionInfoOverlay');
+    overlay?.classList.remove('open');
+    const returnFocus = versionDialogReturnFocus;
+    versionDialogReturnFocus = null;
+    if (returnFocus?.isConnected) returnFocus.focus();
     if (!updateTargetVersion) clearTimer(versionPollTimer);
   }
 
@@ -488,6 +517,7 @@ export function createSystemUpdateController(dependencies: Dependencies) {
   }
 
   document.addEventListener('click', handleClick);
+  document.addEventListener('keydown', handleVersionDialogKeydown, true);
 
   return {
     open: openVersionInfo,
@@ -497,6 +527,7 @@ export function createSystemUpdateController(dependencies: Dependencies) {
     hasPendingUpdate: () => !!updateTargetVersion,
     dispose() {
       document.removeEventListener('click', handleClick);
+      document.removeEventListener('keydown', handleVersionDialogKeydown, true);
       clearTimer(versionPollTimer);
       clearTimer(updateVerificationTimer);
       clearTimer(updateReloadTimer);

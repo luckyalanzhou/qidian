@@ -1,5 +1,7 @@
 import { HttpError, MAX_FILE_BYTES } from '../validation.js';
 
+export const ASSET_PRUNE_GRACE_MS = 7 * 24 * 60 * 60 * 1000;
+
 function detectMime(bytes) {
   if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) return 'image/png';
   if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return 'image/jpeg';
@@ -40,7 +42,9 @@ export function createAssetService(repository, { now = Date.now, createId = () =
     const { vaultData, snapshots, assets } = await repository.findAssetPruneCandidates(db, accountId);
     const referenced = assetReferences(vaultData);
     for (const snapshot of snapshots) assetReferences(snapshot.data, referenced);
-    const unused = assets.filter(asset => !referenced.has(String(asset.id).toLowerCase()));
+    const cutoff = now() - ASSET_PRUNE_GRACE_MS;
+    const unused = assets.filter(asset => !referenced.has(String(asset.id).toLowerCase()) &&
+      Number.isSafeInteger(asset.created) && asset.created <= cutoff);
     await repository.deleteAccountAssets(db, accountId, unused.map(asset => asset.id));
     return { removed: unused.length, bytes: unused.reduce((total, asset) => total + Number(asset.size || 0), 0) };
   }

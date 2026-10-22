@@ -274,6 +274,7 @@ test('web updates use a limited host agent, verify the public release checksum, 
   assert.match(updater, /qidian\.sh install/);
   assert.match(updater, /拉取成品镜像/);
   assert.match(init, /procd_set_param command \/usr\/libexec\/istorec\/qidian-updater\.sh serve/);
+  assert.ok(init.includes('[ "$control_dir" = /opt/qidian/update-control ] || return 0'));
   assert.match(compose, /QIDIAN_UPDATE_REQUEST_PATH:\?[^\n]*:\/run\/qidian-update-inbox/);
   assert.match(compose, /QIDIAN_UPDATE_STATUS_PATH:\?[^\n]*:\/run\/qidian-update-status:ro/);
   assert.doesNotMatch(compose, /docker\.sock/);
@@ -311,6 +312,7 @@ test('generic Docker install uses a device-managed named volume and has no host 
 test('LuCI service manager defaults to 9908 and guards Docker-mounted knowledge data', async () => {
   const model = await read('../../../packaging/istoreos/luci-app-qidian/root/usr/lib/lua/luci/model/cbi/qidian.lua');
   const manager = await read('../../../packaging/istoreos/luci-app-qidian/root/usr/libexec/istorec/qidian.sh');
+  const updater = await read('../../../packaging/istoreos/luci-app-qidian/root/usr/libexec/istorec/qidian-updater.sh');
   const installer = await read('../../../packaging/istoreos/install.sh');
   const controller = await read('../../../packaging/istoreos/luci-app-qidian/root/usr/lib/lua/luci/controller/qidian.lua');
   const applyTrigger = await read('../../../packaging/istoreos/luci-app-qidian/root/usr/share/ucitrack/luci-app-qidian.json');
@@ -322,8 +324,12 @@ test('LuCI service manager defaults to 9908 and guards Docker-mounted knowledge 
   assert.match(manager, /\.qidian-storage/);
   assert.match(manager, /compose down/);
   assert.doesNotMatch(manager, /docker volume rm|rm -rf "\$data_dir/);
-  assert.match(manager, /control_dir=\$data_dir\/\.qidian-update-control/);
-  assert.match(manager, /mv -f "\$old_dir\/\$filename"/);
+  assert.match(manager, /control_dir=\$INSTALL_DIR\/update-control/);
+  assert.doesNotMatch(manager, /control_dir=\$data_dir\/\.qidian-update-control/);
+  assert.match(updater, /CONTROL_ROOT=\$INSTALL_DIR\/update-control/);
+  assert.ok(updater.includes('[ "$CONTROL_DIR" = "$CONTROL_ROOT" ] || return 1'));
+  assert.match(manager, /if \[ -L "\$control_dir" \]; then rm -f "\$control_dir"/);
+  assert.doesNotMatch(manager, /legacy_source=|old_dir=\$legacy_source/);
   assert.doesNotMatch(model, /Docker 与 Compose 已就绪|translate\("运行依赖"\)/);
   assert.match(model, /if not docker_ready or not compose_ready then/);
   assert.match(model, /if needs_deployment then/);

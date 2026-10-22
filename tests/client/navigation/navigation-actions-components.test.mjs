@@ -6,6 +6,7 @@ import { pathToFileURL } from 'node:url';
 import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { JSDOM } from 'jsdom';
 import { createDashboardActions } from '../../../src/features/dashboard/actions.ts';
+import { mountWorkspaceKeyboardEvents } from '../../../src/features/navigation/workspace-keyboard-events.ts';
 
 test('Vue note list and cards dispatch navigation commands directly without document click routing', async t => {
   const require = createRequire(import.meta.url);
@@ -34,6 +35,7 @@ test('Vue note list and cards dispatch navigation commands directly without docu
         "export { default as MobileNavigation } from './src/features/navigation/MobileNavigation.vue';",
         "export { default as WorkspaceTopbarMenus } from './src/features/navigation/WorkspaceTopbarMenus.vue';",
         "export { default as GlobalSearchDialog } from './src/features/search/GlobalSearchDialog.vue';",
+        "export { default as CommandPalette } from './src/features/command-palette/CommandPalette.vue';",
         "export { default as ReaderPage } from './src/features/reader/ReaderPage.vue';",
         "export { default as AppSettings } from './src/features/settings/AppSettings.vue';",
         "export { default as ProfileSettings } from './src/features/account/ProfileSettings.vue';",
@@ -57,7 +59,8 @@ test('Vue note list and cards dispatch navigation commands directly without docu
         "export { useAppSettingsStore } from './src/features/settings/app-settings-store.ts';",
         "export { useProfileSettingsStore } from './src/features/account/profile-settings-store.ts';",
         "export { useBackupHistoryStore } from './src/features/settings/backup-history-store.ts';",
-        "export { useGlobalSearchStore } from './src/features/search/store.ts';"
+        "export { useGlobalSearchStore } from './src/features/search/store.ts';",
+        "export { useCommandPaletteStore } from './src/features/command-palette/store.ts';"
       ].join('\n')
     },
     outfile: bundlePath,
@@ -105,7 +108,7 @@ test('Vue note list and cards dispatch navigation commands directly without docu
     import('pinia'),
     import(pathToFileURL(bundlePath).href)
   ]);
-  const { NotesListPage, BookmarkPage, DashboardPage, EditorPage, ReaderPage, AppSettings, ProfileSettings, BackupHistoryDialog, NoteTypeDialog, CaptureDialog, CreateMenuDialog, SidebarNavigation, MobileNavigation, WorkspaceTopbarMenus, GlobalSearchDialog, useNavigationActionsStore, useNavigationStore, useNoteListStore, useDashboardStore, useBookmarkStore, useEditorStore, useEditorPageActionsStore, useNoteTypeDialogStore, useCaptureDialogStore, useCreateMenuStore, useSidebarStore, useWorkspaceShellActionsStore, useWorkspaceShellStore, useReaderStore, useReaderActionsStore, useVaultStore, useAppSettingsStore, useProfileSettingsStore, useBackupHistoryStore, useGlobalSearchStore } = components;
+  const { NotesListPage, BookmarkPage, DashboardPage, EditorPage, ReaderPage, AppSettings, ProfileSettings, BackupHistoryDialog, NoteTypeDialog, CaptureDialog, CreateMenuDialog, SidebarNavigation, MobileNavigation, WorkspaceTopbarMenus, GlobalSearchDialog, CommandPalette, useNavigationActionsStore, useNavigationStore, useNoteListStore, useDashboardStore, useBookmarkStore, useEditorStore, useEditorPageActionsStore, useNoteTypeDialogStore, useCaptureDialogStore, useCreateMenuStore, useSidebarStore, useWorkspaceShellActionsStore, useWorkspaceShellStore, useReaderStore, useReaderActionsStore, useVaultStore, useAppSettingsStore, useProfileSettingsStore, useBackupHistoryStore, useGlobalSearchStore, useCommandPaletteStore } = components;
   const pinia = createPinia();
   const vault = useVaultStore(pinia);
   const navigation = useNavigationStore(pinia);
@@ -215,6 +218,7 @@ test('Vue note list and cards dispatch navigation commands directly without docu
     render() {
       return h(Fragment, null, [
         h(WorkspaceTopbarMenus),
+        h(CommandPalette),
         h(GlobalSearchDialog),
         h(SidebarNavigation),
         h(MobileNavigation),
@@ -238,14 +242,67 @@ test('Vue note list and cards dispatch navigation commands directly without docu
   await nextTick();
   assert.ok(dom.window.document.querySelector('#appSettingsOverlay'), 'settings are rendered by the shared Vue root');
   const globalSearch = useGlobalSearchStore(pinia);
+  const commandPalette = useCommandPaletteStore(pinia);
+  const disposeKeyboardEvents = mountWorkspaceKeyboardEvents(dom.window.document, {
+    isEditing: () => false,
+    toggleCommandPalette: () => commandPalette.toggle(),
+    saveDraft() {}, updateEditorBaseline() {}, closeSearch() {}, closeCapture() {}, closeCreateMenu() {}, closeBackupHistory() {},
+    closeAccountSettings() {}, closeThemeMenu() {}, closeAccountMenu() {}, closeWorkspaceMenu() {}, closeSlashMenu() {}, openNote() {}
+  });
+  t.after(disposeKeyboardEvents);
+  globalSearch.configure({
+    bodyText: body => body,
+    typeLabel: id => id,
+    formatDate: value => String(value),
+    isSafeUrl: url => /^https:\/\//.test(url)
+  });
   dom.window.document.querySelector('#searchTop').click();
   await nextTick();
   assert.equal(globalSearch.open, true, 'desktop search opens directly from the Vue search trigger');
   globalSearch.close();
-  dom.window.document.querySelector('#mobileSearch').click();
+  await nextTick();
+  await nextTick();
+  const mobileSearchTrigger = dom.window.document.querySelector('#mobileSearch');
+  mobileSearchTrigger.focus();
+  assert.equal(dom.window.document.activeElement, mobileSearchTrigger, 'the search trigger can receive focus before opening the dialog');
+  mobileSearchTrigger.click();
+  assert.equal(dom.window.document.activeElement, mobileSearchTrigger, 'opening the dialog does not blur its trigger before focus capture');
+  await nextTick();
   await nextTick();
   assert.equal(globalSearch.open, true, 'mobile search opens directly from the Vue navigation');
-  assert.ok(dom.window.document.querySelector('#switcher'), 'Vue renders the search dialog when the store opens');
+  const searchDialog = dom.window.document.querySelector('#switcher');
+  assert.ok(searchDialog, 'Vue renders the search dialog when the store opens');
+  assert.equal(searchDialog.getAttribute('aria-modal'), 'true', 'search exposes modal semantics to assistive technology');
+  const searchInput = dom.window.document.querySelector('#globalSearch');
+  assert.equal(dom.window.document.activeElement, searchInput, 'opening the dialog moves focus to search input');
+  globalSearch.setQuery('no matching record');
+  await nextTick();
+  const tab = new dom.window.KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true });
+  searchInput.dispatchEvent(tab);
+  assert.equal(tab.defaultPrevented, true, 'Tab remains inside the search dialog when there are no results');
+  assert.equal(dom.window.document.activeElement, searchInput);
+  globalSearch.setQuery('');
+  await nextTick();
+  const searchResults = [...searchDialog.querySelectorAll('.switcher-item')];
+  assert.equal(searchResults.length, 2, 'the fixture exposes one note and one bookmark result');
+  searchResults.at(-1).focus();
+  const lastTab = new dom.window.KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true });
+  searchResults.at(-1).dispatchEvent(lastTab);
+  assert.equal(lastTab.defaultPrevented, true, 'Tab from the final search result wraps to the search input');
+  assert.equal(dom.window.document.activeElement, searchInput);
+  const firstReverseTab = new dom.window.KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true, cancelable: true });
+  searchInput.dispatchEvent(firstReverseTab);
+  assert.equal(firstReverseTab.defaultPrevented, true, 'Shift+Tab from the search input wraps to the final result');
+  assert.equal(dom.window.document.activeElement, searchResults.at(-1));
+  searchInput.focus();
+  searchInput.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true, cancelable: true }));
+  await nextTick();
+  await nextTick();
+  assert.equal(globalSearch.open, false, 'the search keyboard shortcut closes the dialog');
+  assert.equal(commandPalette.open, false, 'closing the search dialog does not bubble the shortcut and open a second dialog');
+  assert.equal(dom.window.document.activeElement, mobileSearchTrigger, 'closing from the keyboard restores focus to the opener');
+  globalSearch.show();
+  await nextTick();
   dom.window.document.querySelector('.search-dismiss-layer').dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
   await nextTick();
   assert.equal(globalSearch.open, false, 'clicking outside the search dialog closes it through its component backdrop');

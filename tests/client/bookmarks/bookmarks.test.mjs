@@ -4,6 +4,7 @@ import { JSDOM } from 'jsdom';
 import { validateVault } from '../../../server/validation.js';
 import { validateBookmarks } from '../../../server/bookmarks.js';
 import { bookmarkId, parseBookmarks, mergeBookmarks, bookmarksHTML } from '../../../src/features/bookmarks/data.js';
+import { MAX_BOOKMARK_ITEMS } from '../../../shared/bookmarks.js';
 const Parser = new JSDOM('').window.DOMParser;
 test('bookmark IDs work on HTTP without randomUUID and retain valid unique identifiers', () => {
   let sequence = 0;
@@ -30,6 +31,23 @@ test('browser HTML keeps nested folders, empty groups, order, titles and query s
   assert.deepEqual(parsed.items[0].children.map(x => x.title), ['文档', '工具']);
   assert.equal(parsed.items[0].children[0].children[0].url, 'https://example.com/docs?q=1');
   assert.deepEqual(parseBookmarks(bookmarksHTML(parsed.items), Parser).items.map(stripIds), parsed.items.map(stripIds));
+});
+
+test('bookmark HTML parsing stops allocating IDs as soon as the item limit is exceeded', () => {
+  const root = { querySelectorAll: () => entries };
+  const entries = Array.from({ length: MAX_BOOKMARK_ITEMS + 1 }, () => ({
+    tagName: 'A',
+    textContent: '项目',
+    closest: () => root,
+    getAttribute: name => name === 'href' ? 'https://example.com/' : null
+  }));
+  let allocatedIds = 0;
+  class ParserFixture {
+    parseFromString() { return { querySelector: () => root }; }
+  }
+
+  assert.throws(() => parseBookmarks('', ParserFixture, () => `b${++allocatedIds}`), /不能超过 10000/);
+  assert.equal(allocatedIds, MAX_BOOKMARK_ITEMS);
 });
 function stripIds({ id, children, ...item }) { return children ? { ...item, children: children.map(stripIds) } : item; }
 test('merge deduplicates within the same path and retains distinct resource parameters', () => {

@@ -37,8 +37,8 @@ test('product branding shows the name without repeated promotional taglines', as
   assert.match(mobileDrawer,/id="menuBtn"[\s\S]*?shell\.mobileMenuOpen/,'the mobile drawer button reads Pinia-owned shell state');
   assert.match(mobileDrawer,/id="mobileShade"[\s\S]*?:aria-hidden="!shell\.mobileMenuOpen"/,'the shade follows the Vue-owned mobile drawer state');
   assert.match(mobileDrawer,/@click="shell\.toggleMobileMenu\(\)"/,'Vue owns the mobile drawer toggle');
-  assert.match(mobileDrawer,/@click="closeFromShade"/,'Vue owns closing the drawer from its shade');
-  assert.match(mobileDrawer,/function closeFromShade\(\)[\s\S]*?shell\.closeMobileMenu\(\)[\s\S]*?menuBtn/,'closing from the shade updates Pinia and restores focus');
+  assert.match(mobileDrawer,/@click="closeDrawer"/,'Vue owns closing the drawer from its shade');
+  assert.match(mobileDrawer,/function closeDrawer\(\)[\s\S]*?focusController\.close\(true\)/,'closing from the drawer returns focus to its toggle');
   dom.window.close();
 });
 
@@ -92,10 +92,12 @@ test('mobile drawer exposes its state and every home entry closes it on the dash
   dom.window.close();
 });
 
-test('mobile drawer has a close control inside the drawer so it stays above the overlay', async () => {
+test('mobile drawer close button and shade share focus-restoring close behavior', async () => {
   const source = await readFile(new URL('../../../src/features/navigation/MobileDrawerControls.vue', import.meta.url), 'utf8');
   const styles = await readFile(new URL('../../../src/styles.css', import.meta.url), 'utf8');
-  assert.match(source, /id="mobileDrawerClose"[\s\S]*?aria-label="关闭菜单"[\s\S]*?@click="shell\.closeMobileMenu\(\)"/);
+  assert.match(source, /id="mobileDrawerClose"[\s\S]*?aria-label="关闭菜单"[\s\S]*?@click="closeDrawer"/);
+  assert.match(source, /function closeDrawer\(\)[\s\S]*?focusController\.close\(true\)/);
+  assert.match(source, /id="mobileShade"[\s\S]*?@click="closeDrawer"/);
   assert.match(styles, /body\.menu-open \.mobile-drawer-close\{[^}]*display:inline-flex/);
 });
 

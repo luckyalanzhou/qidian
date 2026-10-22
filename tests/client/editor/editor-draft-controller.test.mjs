@@ -77,6 +77,35 @@ test('change detection syncs the editor before comparing against the saved basel
   assert.equal(h.draft.title, '修改标题');
 });
 
+test('saving an unchanged published note does not create a pending draft', async () => {
+  const stored = note();
+  const h = harness({
+    notes: [stored],
+    fields: { title: stored.title, type: stored.type, category: stored.category, tags: [], source: stored.source, body: stored.body }
+  });
+  h.controller.ensureDraft();
+
+  assert.equal(await h.controller.saveDraft(true), true);
+  assert.deepEqual(h.vault.notes, [stored]);
+  assert.equal(Object.hasOwn(h.vault.notes[0], 'publishedSnapshot'), false);
+  assert.deepEqual(h.events, ['reset-publish']);
+});
+
+test('saving changed content for a published note retains the published baseline', async () => {
+  const stored = note();
+  const h = harness({ notes: [stored] });
+  h.controller.ensureDraft();
+
+  assert.equal(await h.controller.saveDraft(true), true);
+  assert.equal(h.vault.notes[0].title, '修改标题');
+  assert.equal(h.vault.notes[0].body, '<p>已修改</p>');
+  assert.deepEqual(h.vault.notes[0].publishedSnapshot, {
+    title: stored.title, type: stored.type, category: stored.category, tags: [], body: stored.body,
+    source: stored.source, updated: stored.updated
+  });
+  assert.deepEqual(h.events, ['reset-publish', 'persist']);
+});
+
 test('saving an untouched transient note discards it without persisting an empty draft', async () => {
   const draft = note({ title: '', body: '<p></p>', status: 'draft' });
   const snapshot = JSON.stringify({ title: draft.title, type: draft.type, category: draft.category, tags: [], source: '', body: draft.body });
