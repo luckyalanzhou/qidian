@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { openSelfHostedDatabase } from '../../server/sqlite-migrations.mjs';
 import { createSelfHostedServer } from '../../server/http-server.mjs';
+import { readStorageCapacity } from '../../server/storage-capacity.mjs';
 import { QIDIAN_PORT } from '../../server/selfhost.mjs';
 import { queueQidianUpdate, qidianUpdaterReady, readQidianUpdateStatus } from '../../server/host-updater.mjs';
 import { makeRegistrationCredential } from '../../src/features/auth/credentials.js';
@@ -38,12 +39,12 @@ test('self-hosted SQLite migrations back up schema changes and serve a private a
   const DB = await openSelfHostedDatabase({ databasePath: join(data, 'qidian.sqlite'), migrationsDir: resolve('migrations') });
   const migrations = await DB.prepare('SELECT name FROM qidian_schema_migrations ORDER BY name').all();
   assert.deepEqual(migrations.results.map(item => item.name), [
-    '0001_initial.sql', '0002_accounts.sql', '0003_email_auth.sql', '0004_account_profiles.sql', '0005_snapshot_retention.sql', '0006_username_only_login.sql', '0007_session_idle_timeout.sql'
+    '0001_initial.sql', '0002_accounts.sql', '0003_email_auth.sql', '0004_account_profiles.sql', '0005_snapshot_retention.sql', '0006_username_only_login.sql', '0007_session_idle_timeout.sql', '0008_streamed_unbounded_assets.sql'
   ]);
   const backups = await (await import('node:fs/promises')).readdir(join(data, 'migration-backups'));
-  assert.equal(backups.length, 6, 'each data or schema migration after the first leaves a pre-change database copy');
+  assert.equal(backups.length, 7, 'each data or schema migration after the first leaves a pre-change database copy');
 
-  const server = createSelfHostedServer({ DB, root: staticRoot, registrationEnabled: true, trustProxy: true, trustedProxies:['127.0.0.1'] });
+  const server = createSelfHostedServer({ DB, root: staticRoot, storagePath:data, registrationEnabled: true, trustProxy: true, trustedProxies:['127.0.0.1'] });
   await new Promise((resolveListen, reject) => {
     server.once('error', reject);
     server.listen(0, '127.0.0.1', resolveListen);
@@ -73,7 +74,8 @@ test('self-hosted SQLite migrations back up schema changes and serve a private a
   assert.equal(ready.status,200);
   assert.equal(await ready.text(),'ready');
   assert.equal(server.headersTimeout,15_000);
-  assert.equal(server.requestTimeout,60_000);
+  assert.equal(server.requestTimeout,0);
+  assert.equal(server.timeout,120_000);
   const unauthenticated = await fetch(`${base}/api/vault`);
   assert.equal(unauthenticated.status, 401);
   const missingFile = await fetch(`${base}/missing.js`);
@@ -96,6 +98,36 @@ test('self-hosted SQLite migrations back up schema changes and serve a private a
   const created = await (await DB.prepare('SELECT id FROM accounts WHERE username_normalized = ?').bind('selfhost_user').first());
   assert.ok(created?.id);
   assert.equal((await DB.prepare('SELECT COUNT(*) AS count FROM auth_throttles WHERE bucket_key LIKE ?').bind('%').first()).count, 2);
+  const unauthenticatedStorage = await fetch(`${base}/api/system/storage`);
+  assert.equal(unauthenticatedStorage.status,401,'storage usage is private');
+  const storage = await fetch(`${base}/api/system/storage`, { headers:{ Cookie:registered.headers.get('set-cookie').split(';')[0], Origin:base } });
+  assert.equal(storage.status,200);
+  assert.deepEqual(await storage.json(),await readStorageCapacity(data),'self-hosted endpoint reads the mounted data directory capacity');
+  const largeBytes = new Uint8Array(8*1024*1024+1).fill(29);
+  const largeUpload = await fetch(`${base}/api/assets`, {
+    method:'POST',
+    headers:{ Origin:base, Cookie:registered.headers.get('set-cookie').split(';')[0], 'X-File-Name':'large.bin' },
+    body:largeBytes
+  });
+  assert.equal(largeUpload.status,201,await largeUpload.clone().text());
+  const largeAsset = await largeUpload.json();
+  assert.equal(largeAsset.size,largeBytes.length);
+  const largeDownload = await fetch(`${base}/api/assets/${largeAsset.id}`, {
+    headers:{ Origin:base, Cookie:registered.headers.get('set-cookie').split(';')[0] }
+  });
+  assert.equal(largeDownload.status,200);
+  let streamedBytes=0, firstByte=-1, lastByte=-1;
+  const assetReader=largeDownload.body.getReader();
+  for (;;) {
+    const { done, value } = await assetReader.read();
+    if (done) break;
+    if (firstByte < 0 && value.length) firstByte=value[0];
+    if (value.length) lastByte=value.at(-1);
+    streamedBytes+=value.length;
+  }
+  assert.equal(streamedBytes,largeBytes.length);
+  assert.equal(firstByte,29);
+  assert.equal(lastByte,29);
 
   const plainHttpCredential = await makeRegistrationCredential('Plain http phrase 9!');
   const plainHttpRegistration = await fetch(`${base}/api/auth/register`, {

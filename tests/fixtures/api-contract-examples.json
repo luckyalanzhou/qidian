@@ -29,6 +29,7 @@
     "prunedAssets": { "removed": 0, "bytes": 0 },
     "systemVersion": { "currentVersion": "0.0.24", "latestVersion": "0.0.24", "updateAvailable": false },
     "updateAcceptance": { "accepted": true, "version": "0.0.24" },
-    "updateStatus": { "state": "idle", "version": "", "updatedAt": null, "logUpdatedAt": null, "log": "" }
+    "updateStatus": { "state": "idle", "version": "", "updatedAt": null, "logUpdatedAt": null, "log": "" },
+    "storageCapacity": { "usedPercent": 70.01, "warning": true }
   }
 }

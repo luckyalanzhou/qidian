@@ -46,22 +46,22 @@ export async function openSelfHostedDatabase({ databasePath, migrationsDir = res
       // Rebuilding the account table removes its unique legacy contact column.
       // Disable FK enforcement only for this schema transaction, then validate
       // every relationship before committing it.
-      const rebuildsAccountIdentity = name === '0006_username_only_login.sql';
-      if (rebuildsAccountIdentity) raw.exec('PRAGMA foreign_keys=OFF');
+      const requiresForeignKeyRebuild = new Set(['0006_username_only_login.sql', '0008_streamed_unbounded_assets.sql']).has(name);
+      if (requiresForeignKeyRebuild) raw.exec('PRAGMA foreign_keys=OFF');
       raw.exec('BEGIN IMMEDIATE');
       try {
         raw.exec(await readFile(join(migrationRoot, name), 'utf8'));
-        if (rebuildsAccountIdentity) {
+        if (requiresForeignKeyRebuild) {
           const violations = raw.prepare('PRAGMA foreign_key_check').all();
           if (violations.length) throw new Error(`foreign key check failed: ${JSON.stringify(violations)}`);
         }
         raw.prepare('INSERT INTO qidian_schema_migrations(name, applied_at) VALUES (?, ?)').run(name, Date.now());
         raw.exec('COMMIT');
-        if (rebuildsAccountIdentity) raw.exec('PRAGMA foreign_keys=ON');
+        if (requiresForeignKeyRebuild) raw.exec('PRAGMA foreign_keys=ON');
         applied.add(name);
       } catch (error) {
         raw.exec('ROLLBACK');
-        if (rebuildsAccountIdentity) raw.exec('PRAGMA foreign_keys=ON');
+        if (requiresForeignKeyRebuild) raw.exec('PRAGMA foreign_keys=ON');
         throw new Error(`SQLite migration ${name} failed; prior data was preserved: ${error.message}`, { cause: error });
       }
     }

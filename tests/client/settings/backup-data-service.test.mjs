@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createBackupArchive } from '../../../src/features/settings/backup-archive.ts';
+import { createBackupArchive, parseBackupArchive } from '../../../src/features/settings/backup-archive.ts';
 import { createBackupDataService } from '../../../src/features/settings/backup-data-service.ts';
 
 const id = '123e4567-e89b-12d3-a456-426614174000';
@@ -42,13 +42,26 @@ test('export flushes pending cloud writes and downloads a complete archive', asy
   assert.equal(download[2], '栖点-完整备份-2026-10-19.zip');
   assert.deepEqual(h.events.filter(event => typeof event === 'string'), ['flush', 'list-assets', `read-asset:${id}`]);
   const archived = new Uint8Array(await download[1].arrayBuffer());
-  assert.ok(archived.byteLength > content.length);
+  const parsed = parseBackupArchive('backup.zip', archived, value => value);
+  assert.deepEqual(parsed.data.notes, vault.notes);
+  assert.deepEqual(parsed.assetBytes[id], content);
 });
 
 test('export refuses a backup while the cloud save queue has an error', async () => {
   const h = harness({ flush: false });
   await assert.rejects(h.service.exportBackup(vault), /同步失败/);
   assert.deepEqual(h.events, ['flush']);
+});
+
+test('import does not reject a backup based on the former 130 MiB file-size cap', async () => {
+  const h = harness();
+  const bytes = new TextEncoder().encode(JSON.stringify(vault));
+  const restored = await h.service.readBackup({
+    name: 'vault.json',
+    size: 130 * 1024 * 1024 + 1,
+    arrayBuffer: async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)
+  });
+  assert.deepEqual(restored, vault);
 });
 
 test('import reuses an identical stored attachment without uploading a duplicate', async () => {

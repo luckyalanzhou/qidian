@@ -56,7 +56,7 @@
 - 重装保留 `.env`、LuCI 配置和知识库目录。
 - LuCI 自动读取 Docker Root Dir，默认 HTTP 9908。
 - 更新代理只接受固定任务，校验 Release SHA-256，不挂载 Docker Socket。
-- 更新状态写入配置的数据目录，清理旧日志并记录失败。
+- 更新请求、状态和日志由 iStoreOS 宿主代理保存在宿主安装目录的 `update-control` 下；默认日志路径为 `/opt/qidian/update-control/outbox/update.log`。
 - Web 日志每秒刷新，确认目标版本上线后等待 5 秒刷新页面。
 
 ## 仍需实机验证
@@ -70,7 +70,7 @@
 - iPhone Safari 与 Android Chrome 的输入法、剪贴板、文件选择和下载。
 - 桌面 Chrome、Edge、Firefox 的视觉间距、滚动和快捷键。
 - 路由器防火墙、端口转发、DDNS 和用户自建 HTTPS 反向代理。
-- 大型 ZIP、接近容量上限的附件和长期运行后的磁盘占用。
+- 大型 ZIP、接近宿主机数据卷容量的附件和长期运行后的磁盘占用。
 
 ## 发布前检查
 

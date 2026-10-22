@@ -119,11 +119,16 @@ test('iStoreOS release is manual and uses package.json as its single version sou
   const releaseVersionScript = await read('../../../scripts/release-version.mjs');
   const releaseWorkflow = workflow.slice(workflow.indexOf('  package:'));
   const pullRequestWorkflow = workflow.slice(workflow.indexOf('  verify:'), workflow.indexOf('  package:'));
+  const workflowPreamble = workflow.slice(0, workflow.indexOf('jobs:'));
+  const packageJobHeader = releaseWorkflow.slice(0, releaseWorkflow.indexOf('      - uses: actions/checkout'));
 
   assert.match(workflow, /pull_request:[\s\S]*?branches:[\s\S]*?- main/);
   assert.match(workflow, /workflow_dispatch:/);
+  assert.doesNotMatch(workflowPreamble, /secrets\./, 'publishing secrets must not be exposed at workflow scope');
+  assert.doesNotMatch(packageJobHeader, /secrets\./, 'publishing secrets must be scoped to individual release steps');
   assert.match(workflow, /verify:\r?\n    if: github\.event_name == 'pull_request'/);
-  assert.match(workflow, /package:\r?\n    if: github\.event_name == 'workflow_dispatch'/);
+  assert.match(workflow, /package:\r?\n    if: github\.event_name == 'workflow_dispatch' && github\.ref == 'refs\/heads\/main'/,
+    'publishing secrets must never be available to a manually dispatched non-main workflow revision');
   assert.match(workflow, /group: qidian-manual-release[\s\S]*?cancel-in-progress: false/);
   assert.match(workflow, /group: qidian-pr-\$\{\{ github\.event\.pull_request\.number \}\}[\s\S]*?cancel-in-progress: true/);
   assert.match(workflow, /name: Verify PR source[\s\S]*?pnpm check[\s\S]*?pnpm test[\s\S]*?pnpm build/);
@@ -134,7 +139,13 @@ test('iStoreOS release is manual and uses package.json as its single version sou
   assert.match(workflow, /release_notes:\r?\n\s+description: "中文发布说明：每行写一项用户可感知的改进或修复，不要填写提交标题或构建步骤"\r?\n\s+required: true/);
   assert.match(workflow, /fetch-depth: 0/);
   assert.match(workflow, /permissions:\r?\n  contents: read/);
-  assert.match(workflow, /token: \$\{\{ secrets\.RELEASE_PUBLISH_TOKEN \}\}/);
+  assert.match(releaseWorkflow, /uses: actions\/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7\.0\.1[\s\S]*?ref: main[\s\S]*?fetch-depth: 0[\s\S]*?token: \$\{\{ github\.token \}\}[\s\S]*?persist-credentials: false/);
+  assert.doesNotMatch(releaseWorkflow.slice(releaseWorkflow.indexOf('name: Verify publishing secrets'), releaseWorkflow.indexOf('name: Select or resume release version')), /token: \$\{\{ secrets\.RELEASE_PUBLISH_TOKEN \}\}/);
+  assert.match(releaseWorkflow, /name: Push release version bump to main[\s\S]*?RELEASE_PUBLISH_TOKEN: \$\{\{ secrets\.RELEASE_PUBLISH_TOKEN \}\}[\s\S]*?GIT_ASKPASS=\"\$askpass\" GIT_TERMINAL_PROMPT=0 git push origin HEAD:main/);
+  assert.match(releaseWorkflow, /name: Push release version bump to main[\s\S]*?umask 077[\s\S]*?askpass=\$\(mktemp "\$RUNNER_TEMP\/qidian-release-askpass\.XXXXXX"\)[\s\S]*?trap 'rm -f "\$askpass"' EXIT[\s\S]*?chmod 700 "\$askpass"/);
+  for (const [, actionRef] of workflow.matchAll(/^\s+uses: [^\s@]+@([^\s#]+)(?:\s+#.*)?$/gm)) {
+    assert.match(actionRef, /^[0-9a-f]{40}$/, `external action reference must be pinned to a full commit SHA, got ${actionRef}`);
+  }
   assert.match(workflow, /## 本版优化与新增/);
   assert.match(releaseWorkflow, /name: Validate release notes[\s\S]*?请填写面向使用者的中文发布说明/);
   assert.doesNotMatch(releaseWorkflow, /git log --reverse --format='%s'/);
@@ -158,22 +169,29 @@ test('iStoreOS release is manual and uses package.json as its single version sou
   assert.match(workflow, /RELEASE_PUBLISH_TOKEN/);
   assert.match(workflow, /Commit version bump to main/);
   assert.match(workflow, /sha256sum --check/);
-  assert.match(workflow, /docker\/login-action@v3/);
+  assert.match(workflow, /actions\/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7\.0\.1/);
+  assert.match(workflow, /pnpm\/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6\.1\.0/);
+  assert.match(workflow, /actions\/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7\.1\.0/);
+  assert.match(workflow, /docker\/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4\.4\.1/);
+  assert.match(workflow, /docker\/login-action@dbcb813823bdd20940b903addbd779551569679f # v4\.6\.0/);
   assert.doesNotMatch(workflow, /- name: Sign in to Docker Hub\r?\n        if:/);
   assert.match(workflow, /username: luckyalanzhou/);
   assert.match(workflow, /password: \$\{\{ secrets\.DOCKERHUB_TOKEN \}\}/);
-  assert.match(workflow, /docker\/build-push-action@v6/);
+  assert.match(workflow, /docker\/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7\.4\.0/);
   assert.match(workflow, /push: true/);
   assert.match(workflow, /platforms: linux\/amd64,linux\/arm64/);
   assert.match(workflow, /cache: pnpm/);
   assert.match(workflow, /cache-dependency-path: pnpm-lock\.yaml/);
   assert.match(workflow, /timeout-minutes: 60/);
   assert.match(workflow, /DOCKER_BUILD_RECORD_UPLOAD: false/);
-  assert.match(workflow, /setup-qemu-action@v3[\s\S]*?platforms: arm64/);
+  assert.match(workflow, /setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4\.4\.0[\s\S]*?platforms: arm64/);
   assert.match(workflow, /pnpm install --frozen-lockfile --prefer-offline/);
-  assert.ok(releaseWorkflow.indexOf('name: Verify source') < releaseWorkflow.indexOf('docker/setup-qemu-action@v3'), 'source verification fails before Docker emulation setup');
+  assert.ok(releaseWorkflow.indexOf('name: Verify source') < releaseWorkflow.indexOf('docker/setup-qemu-action@'), 'source verification fails before Docker emulation setup');
   assert.ok(workflow.indexOf('name: Smoke-test self-hosted container') < workflow.indexOf('name: Sign in to Docker Hub'), 'Docker Hub login happens only after the local smoke test');
   assert.match(workflow, /Build amd64 image for smoke test[\s\S]*?platforms: linux\/amd64[\s\S]*?load: true/);
+  assert.match(releaseWorkflow, /Build arm64 image for smoke test[\s\S]*?platforms: linux\/arm64[\s\S]*?load: true[\s\S]*?Smoke-test arm64 self-hosted container[\s\S]*?docker run --platform linux\/arm64[\s\S]*?\/readyz[\s\S]*?ready=true[\s\S]*?ARM64 container did not become ready[\s\S]*?\/api\/vault/);
+  assert.equal((workflow.match(/ready=false/g) || []).length, 3, 'PR, amd64 release, and arm64 release smokes all require a successful readiness probe');
+  assert.equal((workflow.match(/if \[ "\$ready" != true \]/g) || []).length, 3, 'all smoke paths fail if readiness never succeeds');
   assert.match(workflow, /curl --fail --silent http:\/\/127\.0\.0\.1:9908\/readyz/);
   assert.doesNotMatch(workflow, /docker build --pull/);
   assert.match(workflow, /cache-from: type=gha,scope=qidian-image/);
@@ -193,9 +211,12 @@ test('iStoreOS release is manual and uses package.json as its single version sou
     'Verify source',
     'Build amd64 image for smoke test',
     'Smoke-test self-hosted container',
+    'Build arm64 image for smoke test',
+    'Smoke-test arm64 self-hosted container',
     'Build multi-architecture Docker image',
     'Build self-extracting .run installer',
     'Commit version bump to main',
+    'Push release version bump to main',
     'Prepare verified GitHub Release',
     'Publish verified GitHub Release',
   ]) {
@@ -215,6 +236,21 @@ test('iStoreOS release is manual and uses package.json as its single version sou
   assert.match(workflow, /git add package\.json/);
   assert.equal((workflow.match(/gh release upload/g) ?? []).length, 1);
   assert.match(workflow, /gh release upload "\$tag"[\s\S]*?qidian-\$\{version\}\.run[\s\S]*?qidian-\$\{version\}\.run\.release\.sha256/);
+});
+
+test('update status and log documentation points to the host control directory', async () => {
+  const architecture = await read('../../../docs/architecture.md');
+  const verification = await read('../../../docs/verification.md');
+  const updater = await read('../../../packaging/istoreos/luci-app-qidian/root/usr/libexec/istorec/qidian-updater.sh');
+
+  assert.match(updater, /CONTROL_ROOT=\$INSTALL_DIR\/update-control/);
+  assert.match(updater, /LOG_FILE=\$status_dir\/update\.log/);
+  assert.match(architecture, /请求、状态和日志由 iStoreOS 宿主代理保存在宿主安装目录的 `update-control` 下/);
+  assert.match(architecture, /`\/opt\/qidian\/update-control\/outbox\/update\.log`/);
+  assert.doesNotMatch(architecture, /更新状态与日志放在该设备的 Docker 数据目录下/);
+  assert.match(verification, /更新请求、状态和日志由 iStoreOS 宿主代理保存在宿主安装目录的 `update-control` 下/);
+  assert.match(verification, /`\/opt\/qidian\/update-control\/outbox\/update\.log`/);
+  assert.doesNotMatch(verification, /更新状态写入配置的数据目录/);
 });
 
 test('the declared Node runtime supports the SQLite API used by the server', async () => {

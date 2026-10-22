@@ -86,6 +86,11 @@ export type UpdateStatus = {
   logUpdatedAt: number | null;
   log: string;
 };
+
+export type StorageCapacity = {
+  usedPercent: number;
+  warning: boolean;
+};
 export type AccountProfile = { id: string; username: string; created: number; avatarMime: string | null };
 export type PasswordSalt = { salt: string; iterations: number };
 export type AccountAvatarMutation = { ok: true; mime?: string };
@@ -131,6 +136,7 @@ export type ApiResponseMap = {
   systemVersion: SystemVersion;
   updateAcceptance: UpdateAcceptance;
   updateStatus: UpdateStatus;
+  storageCapacity: StorageCapacity;
 };
 
 export type ApiResponseName = keyof ApiResponseMap;

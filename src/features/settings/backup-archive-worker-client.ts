@@ -25,9 +25,9 @@ function runWorker<T>(request: BackupArchiveWorkerRequest, transfer: Transferabl
   }).finally(() => worker.terminate());
 }
 
-export function createBackupArchiveInWorker(data: unknown, assets: BackupArchiveAsset[]) {
+export function createBackupArchiveInWorker(data: unknown, assets: BackupArchiveAsset[], exportedAt: string) {
   const transfer = assets.map(asset => asset.bytes.buffer);
-  return runWorker<Uint8Array>({ id: 0, type: 'export', data, assets }, transfer);
+  return runWorker<Uint8Array>({ id: 0, type: 'export', data, assets, exportedAt }, transfer);
 }
 
 export function parseBackupArchiveInWorker(filename: string, bytes: ArrayBuffer) {

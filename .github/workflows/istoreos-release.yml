@@ -34,13 +34,13 @@ jobs:
     env:
       DOCKER_BUILD_RECORD_UPLOAD: false
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
         with:
           version: 11.25.0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: pnpm
@@ -58,9 +58,9 @@ jobs:
         run: |
           version=$(node -p "require('./package.json').version")
           echo "value=$version" >> "$GITHUB_OUTPUT"
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
       - name: Build amd64 PR image for smoke test
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           platforms: linux/amd64
@@ -79,15 +79,17 @@ jobs:
             -e REGISTRATION_ENABLED=false qidian-selfhost:pull-request
           cleanup() { docker rm -f qidian-pr-smoke >/dev/null 2>&1 || true; }
           trap cleanup EXIT
+          ready=false
           for attempt in $(seq 1 30); do
-            if curl --fail --silent http://127.0.0.1:9908/readyz >/dev/null; then break; fi
+            if curl --fail --silent http://127.0.0.1:9908/readyz >/dev/null; then ready=true; break; fi
             sleep 2
           done
+          if [ "$ready" != true ]; then docker logs qidian-pr-smoke; echo "Container did not become ready" >&2; exit 1; fi
           curl --fail --silent http://127.0.0.1:9908/ >/dev/null
           status=$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:9908/api/vault)
           test "$status" = 401 || { docker logs qidian-pr-smoke; echo "Expected unauthenticated API status 401, got $status" >&2; exit 1; }
   package:
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
     concurrency:
       group: qidian-manual-release
       cancel-in-progress: false
@@ -96,11 +98,12 @@ jobs:
     env:
       DOCKER_BUILD_RECORD_UPLOAD: false
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: main
           fetch-depth: 0
-          token: ${{ secrets.RELEASE_PUBLISH_TOKEN }}
+          token: ${{ github.token }}
+          persist-credentials: false
       - name: Verify publishing secrets
         env:
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -108,10 +111,10 @@ jobs:
         run: |
           test -n "$DOCKERHUB_TOKEN" || { echo "Repository secret DOCKERHUB_TOKEN is required." >&2; exit 1; }
           test -n "$RELEASE_PUBLISH_TOKEN" || { echo "Repository secret RELEASE_PUBLISH_TOKEN is required." >&2; exit 1; }
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
         with:
           version: 11.25.0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: pnpm
@@ -146,14 +149,14 @@ jobs:
           pnpm check
           pnpm test
           pnpm build
-      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
         if: steps.version.outputs.promote_only != 'true'
         with:
           platforms: arm64
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
       - name: Build amd64 image for smoke test
         if: steps.version.outputs.promote_only != 'true'
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           platforms: linux/amd64
@@ -173,21 +176,54 @@ jobs:
             -e REGISTRATION_ENABLED=false qidian-selfhost:release
           cleanup() { docker rm -f qidian-smoke >/dev/null 2>&1 || true; }
           trap cleanup EXIT
+          ready=false
           for attempt in $(seq 1 30); do
-            if curl --fail --silent http://127.0.0.1:9908/readyz >/dev/null; then break; fi
+            if curl --fail --silent http://127.0.0.1:9908/readyz >/dev/null; then ready=true; break; fi
             sleep 2
           done
+          if [ "$ready" != true ]; then docker logs qidian-smoke; echo "Container did not become ready" >&2; exit 1; fi
           curl --fail --silent http://127.0.0.1:9908/ >/dev/null
           status=$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:9908/api/vault)
           test "$status" = 401 || { docker logs qidian-smoke; echo "Expected unauthenticated API status 401, got $status" >&2; exit 1; }
+      - name: Build arm64 image for smoke test
+        if: steps.version.outputs.promote_only != 'true'
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          platforms: linux/arm64
+          load: true
+          pull: true
+          build-args: |
+            QIDIAN_VERSION=${{ steps.version.outputs.version }}
+          tags: qidian-selfhost:release-arm64
+          cache-from: type=gha,scope=qidian-image
+      - name: Smoke-test arm64 self-hosted container
+        if: steps.version.outputs.promote_only != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --platform linux/arm64 -d --name qidian-arm64-smoke -p 127.0.0.1:9909:9908 \
+            --tmpfs /data:uid=1000,gid=1000 \
+            -e REGISTRATION_ENABLED=false qidian-selfhost:release-arm64
+          cleanup() { docker rm -f qidian-arm64-smoke >/dev/null 2>&1 || true; }
+          trap cleanup EXIT
+          ready=false
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:9909/readyz >/dev/null; then ready=true; break; fi
+            sleep 2
+          done
+          if [ "$ready" != true ]; then docker logs qidian-arm64-smoke; echo "ARM64 container did not become ready" >&2; exit 1; fi
+          curl --fail --silent http://127.0.0.1:9909/ >/dev/null
+          status=$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:9909/api/vault)
+          test "$status" = 401 || { docker logs qidian-arm64-smoke; echo "Expected unauthenticated arm64 API status 401, got $status" >&2; exit 1; }
       - name: Sign in to Docker Hub
-        uses: docker/login-action@v3
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           username: luckyalanzhou
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Build multi-architecture Docker image
         if: steps.version.outputs.promote_only != 'true'
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           platforms: linux/amd64,linux/arm64
@@ -241,9 +277,31 @@ jobs:
           git add package.json
           if ! git diff --cached --quiet; then
             git commit -m "chore: release v${VERSION}"
-            git push origin HEAD:main
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
           fi
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Push release version bump to main
+        if: steps.version.outputs.promote_only != 'true' && steps.release_commit.outputs.changed == 'true'
+        env:
+          RELEASE_PUBLISH_TOKEN: ${{ secrets.RELEASE_PUBLISH_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          askpass=$(mktemp "$RUNNER_TEMP/qidian-release-askpass.XXXXXX")
+          trap 'rm -f "$askpass"' EXIT
+          cat > "$askpass" <<'EOF'
+          #!/bin/sh
+          case "${1:-}" in
+            *Username*) printf '%s\n' 'x-access-token' ;;
+            *Password*) printf '%s\n' "$RELEASE_PUBLISH_TOKEN" ;;
+            *) exit 1 ;;
+          esac
+          EOF
+          chmod 700 "$askpass"
+          GIT_ASKPASS="$askpass" GIT_TERMINAL_PROMPT=0 git push origin HEAD:main
       - name: Prepare verified GitHub Release
         if: steps.version.outputs.promote_only != 'true'
         env:

@@ -33,6 +33,15 @@ test('typed API transport keeps requests same-origin, uncached and maps HTTP fai
   }), 5);
   await assert.rejects(() => timedOut('/vault'), /请求超时/);
 
+  let uploadSignal;
+  const longUpload = createApiClient(async (_input, init) => {
+    uploadSignal = init.signal;
+    await new Promise(resolve => setTimeout(resolve, 20));
+    return Response.json({ id:'asset-1' });
+  }, 5);
+  await longUpload('/assets', { method:'POST', body:new Uint8Array([1]) });
+  assert.equal(uploadSignal.aborted, false, 'large attachment uploads do not have a fixed client timeout');
+
   const failed = createApiClient(async () => Response.json({ error: '版本冲突', code: 'REVISION_MISMATCH' }, { status: 409 }));
   await assert.rejects(() => failed('/vault', { method: 'PUT' }), error => {
     assert.ok(error instanceof ApiError);

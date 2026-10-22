@@ -12,7 +12,8 @@ export const useWorkspaceShellStore = defineStore('workspace-shell', {
     resolvedDark: false,
     username: '我的账号',
     avatarUrl: null as string | null,
-    localPreview: false
+    localPreview: false,
+    workspaceReady: false
   }),
   actions: {
     setBreadcrumbTitle(title: string) {
@@ -48,6 +49,7 @@ export const useWorkspaceShellStore = defineStore('workspace-shell', {
     setIdentity(username: string, localPreview?: boolean) {
       this.username = username || '我的账号';
       if (localPreview !== undefined) this.localPreview = localPreview;
+      this.workspaceReady = true;
     },
     setAvatar(avatarUrl: string | null) {
       this.avatarUrl = avatarUrl;

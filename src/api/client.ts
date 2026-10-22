@@ -32,15 +32,15 @@ export function createApiClient(
       || decodedPath.split('/').some(segment => segment === '.' || segment === '..')) {
       throw new TypeError('API 路径必须是站内绝对路径');
     }
-    const requestTimeoutMs = pathname === '/assets' || pathname.startsWith('/assets/')
-      ? Math.max(timeoutMs, 120_000)
-      : timeoutMs;
+    const isStreamingAssetUpload = pathname === '/assets' && String(options.method || 'GET').toUpperCase() === 'POST';
+    const requestTimeoutMs = isStreamingAssetUpload ? 0
+      : pathname === '/assets' || pathname.startsWith('/assets/') ? Math.max(timeoutMs, 120_000) : timeoutMs;
     const controller = new AbortController();
     let timedOut = false;
-    const timeoutHandle = globalThis.setTimeout(() => {
+    const timeoutHandle = requestTimeoutMs ? globalThis.setTimeout(() => {
       timedOut = true;
       controller.abort(new DOMException('Request timed out', 'TimeoutError'));
-    }, requestTimeoutMs);
+    }, requestTimeoutMs) : undefined;
     const abortFromCaller = () => controller.abort(options.signal?.reason);
     if (options.signal?.aborted) abortFromCaller();
     else options.signal?.addEventListener('abort', abortFromCaller, { once: true });
@@ -52,7 +52,7 @@ export function createApiClient(
       if (error instanceof TypeError && !options.signal?.aborted) throw new Error('网络连接失败，请检查网络后重试');
       throw error;
     } finally {
-      globalThis.clearTimeout(timeoutHandle);
+      if (timeoutHandle !== undefined) globalThis.clearTimeout(timeoutHandle);
       options.signal?.removeEventListener('abort', abortFromCaller);
     }
     if (!response.ok) {

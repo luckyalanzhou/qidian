@@ -16,6 +16,7 @@ async function main() {
   const server = createSelfHostedServer({
     DB,
     root: config.staticDir,
+    storagePath: config.dataDir,
     registrationEnabled: config.registrationEnabled,
     trustProxy: config.trustProxy,
     trustedProxies: config.trustedProxies,

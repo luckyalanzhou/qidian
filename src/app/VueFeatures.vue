@@ -2,6 +2,7 @@
 import ActionDialog from '../features/dialogs/ActionDialog.vue';
 import SyncConflictDialog from '../features/sync/SyncConflictDialog.vue';
 import ToastHost from '../features/notifications/ToastHost.vue';
+import StorageCapacityWarning from '../features/storage/StorageCapacityWarning.vue';
 import WorkspaceTopbarMenus from '../features/navigation/WorkspaceTopbarMenus.vue';
 import WorkspaceBreadcrumb from '../features/navigation/WorkspaceBreadcrumb.vue';
 import MobileDrawerControls from '../features/navigation/MobileDrawerControls.vue';
@@ -33,6 +34,7 @@ const backupHistoryStore = useBackupHistoryStore();
   <ActionDialog />
   <SyncConflictDialog />
   <ToastHost />
+  <StorageCapacityWarning />
   <WorkspaceTopbarMenus />
   <WorkspaceBreadcrumb />
   <MobileDrawerControls />

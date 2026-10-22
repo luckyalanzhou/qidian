@@ -7,6 +7,7 @@ import { handleAccountRoute } from './features/account.js';
 import { handleAssetRoute } from './features/assets.js';
 import { handleBackupRoute } from './features/backups.js';
 import { handleSystemUpdateRoute } from './features/system-updates.js';
+import { handleSystemStorageRoute } from './features/system-storage.js';
 import { handleVaultRoute } from './features/vault.js';
 
 async function readJson(request, maxBytes = MAX_VAULT_BYTES + 10000, contract) {
@@ -44,6 +45,8 @@ export async function handle(request, env) {
     if (!env.DB) throw new HttpError(503, '尚未配置数据库');
     const systemResponse = await handleSystemUpdateRoute({ request, env, accountId, path, json, readJson });
     if (systemResponse) return systemResponse;
+    const storageResponse = await handleSystemStorageRoute({ request, env, path, json });
+    if (storageResponse) return storageResponse;
     const accountResponse = await handleAccountRoute({ request, env, accountId, path, json, headers, readJson });
     if (accountResponse) return accountResponse;
     const vaultResponse = await handleVaultRoute({ request, env, accountId, path, json, readJson });

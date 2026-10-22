@@ -17,6 +17,9 @@ const isVaultData = value => {
 const isRevision = value => isObject(value) && isNumber(value.revision);
 const isAssetInfo = value => isObject(value) && isString(value.id) && isString(value.name)
   && isString(value.mime) && isNumber(value.size) && isNumber(value.created);
+const isStorageCapacity = value => isObject(value) && typeof value.usedPercent === 'number'
+  && Number.isFinite(value.usedPercent) && value.usedPercent >= 0 && value.usedPercent <= 100
+  && isBoolean(value.warning);
 const isUpdateStatus = value => isObject(value)
   && ['idle', 'unavailable', 'queued', 'running', 'success', 'failed'].includes(value.state)
   && isString(value.version) && isNullableTimestamp(value.updatedAt)
@@ -91,7 +94,8 @@ const responseContracts = {
     && (value.notes === undefined || isString(value.notes))
     && (value.publishedAt === undefined || value.publishedAt === null || isString(value.publishedAt)),
   updateAcceptance: value => isObject(value) && value.accepted === true && isString(value.version),
-  updateStatus: isUpdateStatus
+  updateStatus: isUpdateStatus,
+  storageCapacity: isStorageCapacity
 };
 
 export const API_RESPONSE_NAMES = Object.freeze(Object.keys(responseContracts));

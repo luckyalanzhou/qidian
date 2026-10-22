@@ -6,7 +6,6 @@ import {
 } from '../shared/vault-validation.js';
 
 export { DEFAULT_NOTE_TYPES, MAX_VAULT_BYTES };
-export const MAX_FILE_BYTES = 8 * 1024 * 1024;
 
 export class HttpError extends Error {
   constructor(status, message) {

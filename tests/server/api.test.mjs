@@ -16,13 +16,13 @@ const legacyNote = { id:'legacy-note', title:'旧单人库内容', type:'note', 
 const legacyVault = { categories:['遗留'], notes:[legacyNote], theme:'light', pasteMode:'rich' };
 
 function migrateStatements(sql) {
-  return sql.match(/CREATE TRIGGER[\s\S]*?END;|(?:PRAGMA|CREATE TABLE|CREATE INDEX|INSERT INTO|UPDATE|ALTER TABLE|DROP TRIGGER)[\s\S]*?;/g) || [];
+  return sql.match(/CREATE TRIGGER[\s\S]*?END;|(?:PRAGMA|CREATE TABLE|CREATE INDEX|INSERT INTO|UPDATE|ALTER TABLE|DROP TRIGGER|DROP TABLE)[\s\S]*?;/g) || [];
 }
-const MIGRATION_FILES = ['0001_initial.sql','0002_accounts.sql','0003_email_auth.sql','0004_account_profiles.sql','0005_snapshot_retention.sql','0006_username_only_login.sql','0007_session_idle_timeout.sql'];
+const MIGRATION_FILES = ['0001_initial.sql','0002_accounts.sql','0003_email_auth.sql','0004_account_profiles.sql','0005_snapshot_retention.sql','0006_username_only_login.sql','0007_session_idle_timeout.sql','0008_streamed_unbounded_assets.sql'];
 async function migrateDatabase(DB) {
   for (const file of MIGRATION_FILES) {
     const sql = await readFile(new URL(`../../migrations/${file}`, import.meta.url),'utf8');
-    if (file === '0006_username_only_login.sql') {
+    if (file === '0006_username_only_login.sql' || file === '0008_streamed_unbounded_assets.sql') {
       await DB.exec('PRAGMA foreign_keys=OFF; BEGIN IMMEDIATE;');
       try {
         await DB.exec(sql);
@@ -161,6 +161,15 @@ test('self-hosted version checks require login and queue only a verified latest 
   const secondary = await registerAccount({ username:'update_reader', password:'Another strong phrase 5!' });
   const denied = await handle(request('/system/update','POST','{"action":"update"}',{},secondary.cookie), updateEnv);
   assert.equal(denied.status,403,'secondary accounts cannot update the host device');
+  const secondaryVersion = await handle(request('/system/version','GET',undefined,{},secondary.cookie), updateEnv);
+  assert.equal(secondaryVersion.status,200,'the current policy allows secondary accounts to read device version information');
+  assert.equal((await secondaryVersion.json()).canUpdateDevice,false);
+  const deviceStatus = { state:'running', version:'0.1.6', updatedAt:1791763200000, logUpdatedAt:1791763260000, log:'Pulling the latest image and checking container health.' };
+  const secondaryStatus = await handle(request('/system/update-status','GET',undefined,{},secondary.cookie), {
+    ...updateEnv, readQidianUpdateStatus:async () => deviceStatus
+  });
+  assert.equal(secondaryStatus.status,200,'the current policy allows secondary accounts to read device update status and logs');
+  assert.deepEqual(await secondaryStatus.json(),deviceStatus);
   const status = await handle(request('/system/update-status','GET',undefined,{},alice.cookie), updateEnv);
   assert.deepEqual(await status.json(),{ state:'idle', version:'', updatedAt:null, logUpdatedAt:null, log:'' });
 });
@@ -487,14 +496,19 @@ test('manual snapshots protect referenced attachments while orphan pruning recla
   assert.equal((await call(`/assets/${referenced.id}`)).status,404);
 });
 
-test('per-account file quota is atomic and oversized or empty uploads do not write', async () => {
+test('attachments can exceed the former per-file and per-account quotas', async () => {
   const db=env.DB, account=await db.prepare('SELECT id FROM accounts WHERE username_normalized=?').bind(ALICE.username).first();
-  for (let i=0;i<12;i++) await db.prepare('INSERT INTO account_assets(account_id,id,name,mime,size,created) VALUES(?,?,?,?,?,?)').bind(account.id,`quota-${i}`,'quota','application/octet-stream',8388608,0).run();
-  const before=await db.prepare('SELECT COUNT(*) AS count FROM account_assets WHERE account_id=?').bind(account.id).first();
-  assert.equal((await call('/assets','POST',new Uint8Array(8*1024*1024),ALICE.username,alice.cookie)).status,413);
-  assert.deepEqual(await db.prepare('SELECT COUNT(*) AS count FROM account_assets WHERE account_id=?').bind(account.id).first(),before);
+  for (let i=0;i<13;i++) await db.prepare('INSERT INTO account_assets(account_id,id,name,mime,size,created) VALUES(?,?,?,?,?,?)').bind(account.id,`quota-${i}`,'fixture','application/octet-stream',8*1024*1024,0).run();
+  await db.prepare('INSERT INTO account_assets(account_id,id,name,mime,size,created) VALUES(?,?,?,?,?,?)')
+    .bind(account.id,'over-file-limit','fixture','application/octet-stream',8*1024*1024+1,0).run();
+  const bytes = new Uint8Array(8*1024*1024+1).fill(27);
+  const uploaded = await call('/assets','POST',bytes,ALICE.username,alice.cookie,{ 'X-File-Name':'large.bin' });
+  assert.equal(uploaded.status,201);
+  const asset = await uploaded.json();
+  assert.equal(asset.size,bytes.length);
+  assert.deepEqual(new Uint8Array(await (await call(`/assets/${asset.id}`,'GET',undefined,ALICE.username,alice.cookie)).arrayBuffer()),bytes);
   assert.equal((await call('/assets','POST',new Uint8Array(),ALICE.username,alice.cookie)).status,400);
-  assert.equal((await call('/assets','POST',new Uint8Array(8*1024*1024+1),ALICE.username,alice.cookie)).status,413);
+  assert.equal((await db.prepare('SELECT SUM(size) AS bytes FROM account_assets WHERE account_id=?').bind(account.id).first()).bytes > 100*1024*1024,true);
 });
 
 test('nested bookmarks round-trip through authenticated vault and snapshots without leaking to another account', async () => {

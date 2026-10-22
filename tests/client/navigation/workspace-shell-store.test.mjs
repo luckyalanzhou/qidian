@@ -47,6 +47,7 @@ test('workspace shell keeps theme resolution and temporary profile display state
   assert.equal(shell.resolvedDark, true);
   assert.equal(shell.username, 'alan');
   assert.equal(shell.localPreview, false);
+  assert.equal(shell.workspaceReady, true);
   assert.equal(shell.avatarUrl, 'blob:avatar-preview');
 
   shell.setIdentity('', true);

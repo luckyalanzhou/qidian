@@ -1,10 +1,13 @@
 import { createServer } from 'node:http';
+import { Readable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
 import { readFileSync } from 'node:fs';
 import { readFile, realpath, stat } from 'node:fs/promises';
 import { extname, join, resolve, sep } from 'node:path';
 import { validateTrustedProxyConfig } from './config.mjs';
 import { handle } from './api.js';
 import { qidianUpdaterReady, queueQidianUpdate, readQidianUpdateStatus } from './host-updater.mjs';
+import { readStorageCapacity } from './storage-capacity.mjs';
 
 const PACKAGE_VERSION = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version;
 
@@ -83,11 +86,12 @@ export function isImmutableStaticAsset(path) {
   return segments.includes('assets') && /(?:^|[.-])[A-Za-z0-9_-]{8,}(?=[.-])/.test(filename);
 }
 
-export function createSelfHostedServer({ DB, root = resolve('dist'), registrationEnabled = false, trustProxy = false, trustedProxies = [],
+export function createSelfHostedServer({ DB, root = resolve('dist'), storagePath, getStorageCapacity, registrationEnabled = false, trustProxy = false, trustedProxies = [],
   updateRequestDir, updateStatusDir, qidianVersion = PACKAGE_VERSION || '0.0.0', fetchRelease = globalThis.fetch } = {}) {
   if (!DB) throw new Error('A configured SQLite database is required before serving requests');
   ({ trustProxy, trustedProxies } = validateTrustedProxyConfig(trustProxy, trustedProxies));
   const staticRoot = resolve(root);
+  const storageCapacityReader = getStorageCapacity || (storagePath ? () => readStorageCapacity(storagePath) : undefined);
   const handler = async (incoming, outgoing) => {
     try {
       const url = new URL(incoming.url || '/', externalOrigin(incoming, trustProxy, trustedProxies));
@@ -105,8 +109,12 @@ export function createSelfHostedServer({ DB, root = resolve('dist'), registratio
       }
 
       if (url.pathname.startsWith('/api/')) {
+        const isAssetUpload = url.pathname === '/api/assets' && incoming.method === 'POST';
         const body = ['GET', 'HEAD'].includes(incoming.method || 'GET')
-          ? undefined : await readBody(incoming, DEFAULT_MAX_REQUEST_BYTES);
+          ? undefined
+          : isAssetUpload
+            ? Readable.toWeb(incoming)
+            : await readBody(incoming, DEFAULT_MAX_REQUEST_BYTES);
         const headers = new Headers();
         for (const [name, raw] of Object.entries(incoming.headers)) {
           const key = name.toLowerCase();
@@ -124,6 +132,7 @@ export function createSelfHostedServer({ DB, root = resolve('dist'), registratio
           REGISTRATION_ENABLED: registrationEnabled ? 'true' : 'false',
           QIDIAN_VERSION: qidianVersion,
           fetchRelease,
+          ...(storageCapacityReader ? { readStorageCapacity: storageCapacityReader } : {}),
           ...(updateRequestDir && updateStatusDir ? {
             requestQidianUpdate: () => queueQidianUpdate(updateRequestDir, updateStatusDir),
             readQidianUpdateStatus: () => readQidianUpdateStatus(updateStatusDir, updateRequestDir),
@@ -131,7 +140,11 @@ export function createSelfHostedServer({ DB, root = resolve('dist'), registratio
           } : {})
         });
         writeHead(outgoing, response.status, Object.fromEntries(response.headers));
-        outgoing.end(Buffer.from(await response.arrayBuffer()));
+        if (url.pathname.match(/^\/api\/assets\/[a-f0-9-]{36}$/) && response.body) {
+          await pipeline(Readable.fromWeb(response.body), outgoing);
+        } else {
+          outgoing.end(Buffer.from(await response.arrayBuffer()));
+        }
         return;
       }
 
@@ -163,13 +176,18 @@ export function createSelfHostedServer({ DB, root = resolve('dist'), registratio
     } catch (error) {
       const status = error.status === 413 ? 413 : 500;
       console.error('Self-hosted request failed:', error);
-      if (!outgoing.headersSent) writeHead(outgoing, status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+      if (outgoing.headersSent) {
+        outgoing.destroy(error);
+        return;
+      }
+      writeHead(outgoing, status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
       outgoing.end(JSON.stringify({ error: status === 413 ? '请求内容过大' : '服务器暂时无法完成操作' }));
     }
   };
   const server = createServer(handler);
   server.headersTimeout = 15_000;
-  server.requestTimeout = 60_000;
+  server.requestTimeout = 0;
+  server.timeout = 120_000;
   server.keepAliveTimeout = 5_000;
   return server;
 }

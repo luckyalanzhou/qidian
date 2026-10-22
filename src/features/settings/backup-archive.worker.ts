@@ -1,6 +1,6 @@
 import { createBackupArchive, parseBackupArchive, type BackupArchiveAsset } from './backup-archive.ts';
 
-type ExportRequest = { id: number; type: 'export'; data: unknown; assets: BackupArchiveAsset[] };
+type ExportRequest = { id: number; type: 'export'; data: unknown; assets: BackupArchiveAsset[]; exportedAt: string };
 type ImportRequest = { id: number; type: 'import'; filename: string; bytes: ArrayBuffer };
 type Request = ExportRequest | ImportRequest;
 type ResponseMessage = { id: number; result?: unknown; error?: string };
@@ -14,7 +14,7 @@ workerScope.addEventListener('message', event => {
   const request = event.data;
   try {
     if (request.type === 'export') {
-      const archive = createBackupArchive(request.data, request.assets);
+      const archive = createBackupArchive(request.data, request.assets, request.exportedAt);
       workerScope.postMessage({ id: request.id, result: archive }, [archive.buffer]);
       return;
     }

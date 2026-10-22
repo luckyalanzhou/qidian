@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { findVault, findVaultRevision, saveVaultAtRevision } from '../../server/repositories/vault-repository.js';
 import { createCurrentVaultSnapshot, findVaultSnapshot, listVaultSnapshots } from '../../server/repositories/backup-repository.js';
-import { deleteAccountAssets, findAccountAsset, findAssetPruneCandidates, listAccountAssetChunks, listAccountAssets, saveAccountAsset } from '../../server/repositories/asset-repository.js';
+import { appendAccountAssetUploadChunks, beginAccountAssetUpload, deleteAccountAssets, deleteAccountAssetUpload, deleteExpiredAccountAssetUploads, finalizeAccountAssetUpload, findAccountAsset, findAssetPruneCandidates, getAccountAssetChunk, listAccountAssets } from '../../server/repositories/asset-repository.js';
 import { clearAccountAvatar, findAccountAvatar, findAccountPasswordHash, findAccountPasswordSalt, findAccountProfile, findFirstAccount, saveAccountAvatar, updateAccountPassword } from '../../server/repositories/account-repository.js';
 import {
   consumeAuthChallenge, createAuthChallenge, createRegisteredAccount, createSession,
@@ -61,31 +61,43 @@ test('snapshot repository scopes list, read, create and retention cleanup by acc
   assert.equal(await createCurrentVaultSnapshot(database(), 'account-a', 600), null, 'missing account data creates no snapshot');
 });
 
-test('asset repository chunks uploads and scopes metadata, content, pruning and deletion by account', async () => {
+test('asset repository stages ordered chunks, finalizes atomically and scopes IO by account', async () => {
   const calls = [];
+  const queryResults = [{ name:'a.bin' }, { count:2, bytes:262146 }];
   const db = {
     prepare(sql) {
       return { bind(...parameters) {
         const statement = { sql, parameters };
         calls.push(statement);
-        statement.first = async () => ({ id: 'asset-1', size: 2 });
+        statement.first = async () => queryResults.shift() ?? null;
         statement.all = async () => ({ results: [] });
+        statement.run = async () => ({ meta:{ changes:1 } });
         return statement;
       } };
     },
-    async batch(statements) { calls.push({ batch: statements }); }
+    async batch(statements) { calls.push({ batch: statements }); return []; }
   };
   const chunkSize = 256 * 1024, bytes = new Uint8Array(chunkSize + 2);
   bytes[chunkSize] = 7;
-  await saveAccountAsset(db, { accountId: 'account-a', id: 'asset-1', name: 'a.bin', mime: 'application/octet-stream', size: bytes.length, created: 10, bytes });
-  const upload = calls.find(call => call.batch)?.batch;
-  assert.equal(upload.length, 3, 'metadata and two ordered chunks are written together');
-  assert.deepEqual(upload.map(statement => statement.parameters.slice(0, 3)), [
-    ['account-a', 'asset-1', 'a.bin'], ['account-a', 'asset-1', 0], ['account-a', 'asset-1', 1]
+  await beginAccountAssetUpload(db, { accountId:'account-a', id:'asset-1', name:'a.bin', created:10 });
+  await appendAccountAssetUploadChunks(db, 'account-a', 'asset-1', [
+    { ordinal:0, bytes:bytes.slice(0, chunkSize) }, { ordinal:1, bytes:bytes.slice(chunkSize) }
   ]);
+  await finalizeAccountAssetUpload(db, { accountId:'account-a', id:'asset-1', name:'a.bin', mime:'application/octet-stream', size:bytes.length, created:10 });
+  const chunkBatch = calls.find(call => call.batch)?.batch;
+  assert.equal(chunkBatch.length, 3, 'chunk writes and upload heartbeat share a bounded transaction');
+  assert.deepEqual(chunkBatch.slice(0, 2).map(statement => statement.parameters.slice(0, 3)), [
+    ['account-a', 'asset-1', 0], ['account-a', 'asset-1', 1]
+  ]);
+  assert.match(calls[0].sql, /INSERT INTO account_assets[\s\S]*complete/);
+  const finalize = calls.find(call => /UPDATE account_assets SET mime/.test(call.sql));
+  assert.deepEqual(finalize.parameters, ['application/octet-stream',bytes.length,10,'account-a','asset-1']);
+  assert.match(finalize.sql, /complete = 0/);
   await listAccountAssets(db, 'account-a');
   await findAccountAsset(db, 'account-a', 'asset-1');
-  await listAccountAssetChunks(db, 'account-a', 'asset-1');
+  await getAccountAssetChunk(db, 'account-a', 'asset-1', 0);
+  await deleteExpiredAccountAssetUploads(db, 'account-a', 100);
+  await deleteAccountAssetUpload(db, 'account-a', 'asset-1');
   await findAssetPruneCandidates(db, 'account-a');
   await deleteAccountAssets(db, 'account-a', ['asset-1']);
   const sql = calls.filter(call => call.sql).map(call => call.sql);

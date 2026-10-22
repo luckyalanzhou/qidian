@@ -6,8 +6,21 @@
 
 - 项目根目录：`D:\GitHub\qidian`；以该目录当前源码、配置和项目文档为唯一审查依据。
 - 审查基线：重新读取 `AGENTS.md`、需求、架构、项目地图、验证说明和构建配置；下方上一轮记录只保留作历史线索，不沿用其“已完成”状态。
-- 本轮目标：按数据安全、认证安全、核心流程、可靠性与交付风险排序；一次检查一个模块，有证据的问题才修复并验证。
+- 本轮目标：按数据安全、认证安全、核心流程、可靠性与交付风险排序；一次检查一个模块，有证据的问题才修复并验证。新增已确认需求：附件不设应用层单文件或账号累计容量上限；宿主机数据卷使用率超过 70% 时提醒用户，但不阻断保存。
 - 检查边界：`.local/`、`dist/`、`node_modules/`、`test-results/` 等本地运行数据、依赖目录和构建/测试产物不作为源文件编辑或清理对象。
+
+### 按本轮审查结果推进的修复
+
+| 阶段 | 范围 | 状态 | 结果或下一步 |
+|---|---|---|---|
+| 01 | 发布工作流安全与 Node 24 兼容（QI-13） | 已修复，待验证 | 发布 checkout 使用只读 token 且不持久化凭据，写 PAT 按步骤注入；工作流 Actions 已更新到支持 Node 24 的固定 SHA。远端 runner 尚未执行这版工作流。 |
+| 02 | iStoreOS 更新状态/日志实际目录文档（QI-14） | 已验证，完成 | 架构与验证文档均改为宿主安装目录的 `update-control` 路径，并有实现路径回归检查。 |
+| 03 | ARM64 容器启动冒烟验证（QI-15） | 已修复，待验证 | 本地工作树已增加 ARM64 启动、readiness、首页和未授权 API 检查，并在 readiness 超时时失败；最新远程发布成功记录没有 ARM64 启动步骤，远端 `main` 尚未包含该检查。 |
+| 04 | 完整备份导出与导入上限一致性（QI-18） | 已验证，完成 | 已移除 ZIP 单项、累计解压大小和压缩包文件大小阈值；回归覆盖大于旧单项阈值的附件、超过旧累计阈值的元数据及超过旧压缩包阈值的文件输入。 |
+| 05 | 大体积备份的手机端峰值内存（QI-16） | 受外部条件阻塞 | 已在隔离 SQLite 服务和 390×844 IAB 视口用合成 96 MiB 备份完成导入、重载持久化和导出；未触碰既有账号。浏览器流程可用，但桌面视口无法测出真实手机的内存峰值；Android SDK 的 `adb`/`emulator` 已安装，但未连接设备、没有 AVD，且缺少系统镜像与命令行工具，仍需真机或可运行模拟器实测。 |
+| 06 | 更新状态与日志的次级账号读取范围（QI-17） | 待确认 | 新增回归证明次级账号可读取版本与状态日志，但不能提交设备更新；权限范围仍等产品决定。 |
+| 07 | 宿主数据卷容量告警（QI-20） | 已修复，待验证 | 私有 API 仅返回使用百分比；超过 70% 时工作区持续提醒，不阻断上传或保存。服务端边界/API 与客户端状态测试已通过，浏览器视觉及设备挂载卷行为待验。 |
+| 08 | 附件无产品容量上限（QI-19） | 已修复，待验证 | 附件与完整 ZIP 均无应用层单文件或累计字节上限；附件经 SQLite 分块和流式 HTTP 处理。ZIP 仍整包缓冲，需补验大体积移动端内存和响应性。 |
 
 ### 本轮模块清单
 
@@ -22,8 +35,9 @@
 | 07 | 客户端壳层与交互：`src/app/`、`src/compat/`、导航、认证界面、搜索和弹窗 | P2 | 已验证，完成 | 固定端口桌面浏览器已验证主导航、快速操作、主题/账号菜单、搜索与弹窗焦点；手机视口、屏幕阅读器和实机仍待验证。 |
 | 08 | 前端 API 与共享契约：`src/api/`、`shared/`、`src/domain/`、`src/stores/` | P2 | 已检查，无需修改 | 对照运行时请求/响应、类型与校验实现，未发现已证实契约漂移。 |
 | 09 | 设备安装和更新：`packaging/istoreos/`、安装器、LuCI、宿主代理 | P1 | 已验证，完成 | 更新代理控制目录已移出容器可写数据卷并拒绝符号链接；设备升级与真实 Docker 资源状态仍待设备验收。 |
-| 10 | Docker 与发布：`Dockerfile`、Compose、`.dockerignore`、CI 和 Release 工作流 | P2 | 已检查，无需修改 | 静态核对容器权限、持久化、多架构标签和正式发布触发条件；本轮不执行本机 Docker 构建。 |
-| 11 | 文档与配置：`docs/`、项目说明、包配置、校验脚本 | P3 | 已检查，无需修改 | README、需求、架构、部署、验证与项目地图和当前实现一致；13 个本地 Markdown 链接有效。 |
+| 10 | Docker 与发布：`Dockerfile`、Compose、`.dockerignore`、CI 和 Release 工作流 | P1 | 修复中 | 本地工作流回归 13/13；手动发布 job 现限定在 `refs/heads/main`，阻断从其他分支版本的 workflow 进入发布 job。仍等待远程 Actions 验证凭据推送和 ARM64 QEMU 启动；本轮 GitHub CLI 查询因无法连接 `api.github.com` 失败，不推送，也不执行本机 Docker 构建或正式发布。 |
+| 11 | 文档与配置：`docs/`、项目说明、包配置、校验脚本 | P3 | 已验证，完成 | 架构和验证文档更新日志目录与宿主脚本一致，新增路径回归检查。 |
+| 12 | 附件容量与宿主磁盘告警：`src/api/`、`src/features/storage/`、`src/features/settings/`、`server/features/`、`server/repositories/`、`server/http-server.mjs`、`migrations/`、备份 Worker | P1 | 已修复，待验证 | 已完成 70% 告警、SQLite 约束迁移、固定块大小上传、逐块下载及 ZIP 字节阈值移除。大备份浏览器导入/导出和告警界面已用隔离数据验证；真机内存和 Docker 挂载卷 `statfs` 结果待验证。 |
 
 ### 本轮工作项
 
@@ -64,6 +78,24 @@
 
 | 编号 | 模块、问题依据与优先级 | 状态与依赖 | 修改摘要 | 已执行验证 | 阻碍与下一步 |
 |---|---|---|---|---|---|
+| QI-13 | 10 Docker 与发布；checkout v4.4.0、pnpm/action-setup v4.3.0、setup-node v4.4.0 与 Docker Actions v3/v6 属 Node 20 运行时版本；GitHub 于 2026-09-23 停止提供 Node 20，存在远程验证/发布 Action 无法初始化的风险；P1 | 已修复，待验证 | 保留原有构建、冒烟和发布行为，更新为已审阅的 Node 24 兼容固定 SHA：checkout v7.0.1、pnpm/action-setup v6.1.0、setup-node v7.1.0、setup-qemu v4.4.0、setup-buildx v4.4.1、build-push v7.4.0、login v4.6.0。只读 checkout 凭据与 askpass 加固继续保留。 | 工作流静态回归 13/13，覆盖全部 action SHA 与版本注释、只读 checkout、askpass 权限、ARM64 冒烟和 readiness 超时；本机无 actionlint/YAML 模块，`python.exe` 是不可启动的 Windows Store 占位程序，未运行专用 YAML lint/parser；`DOCKER_BUILD_RECORD_UPLOAD: false` 仍是 build-push v7 支持的环境变量。官方变更说明见 [GitHub Changelog](https://github.blog/changelog/2026-09-23-node-20-is-no-longer-available-in-github-actions/)。 | 尚未推送；本轮 `D:\gh.exe run list` 无法连接 `api.github.com`，无法读取新远程运行结果；不执行 GitHub runner 或正式发布，因此 Node 24 Action 在远程构建中的运行结果待验证。 |
+| QI-14 | 11 文档与配置；架构文档称日志位于 Docker 数据目录，验证文档称写入配置数据目录；实际由宿主代理保存于 `$INSTALL_DIR/update-control/outbox`；P3 | 已验证，完成 | 架构和验证文档统一列出请求、状态和日志目录，并说明默认安装目录 `/opt/qidian` 下的完整日志路径。 | 文档路径回归测试 1/1，交叉验证 updater 的 `CONTROL_ROOT` 与 `LOG_FILE`；`git diff --check` 通过。 | 无。 |
+| QI-15 | 10 Docker 与发布；发布 job 构建 amd64+arm64 镜像，但只启动过 amd64 镜像；ARM64 只做构建验证，不能发现启动期架构/本地依赖错误；P2 | 已修复，待验证 | 本地工作树的正式发布前增加 linux/arm64 构建、QEMU 模拟启动及 readiness、首页与 API 未授权响应检查；启动超时会打印容器日志并失败。 | 本地工作流定向测试 13/13。此前只读检查发布 run `39708956326` 为成功，但 job 步骤无 ARM64 容器启动；本轮 GitHub CLI 查询因无法连接 `api.github.com` 失败，未取得更新的远程运行状态。 | 尚未推送本地修正，未在 GitHub runner 实际构建/启动；本机不执行 Docker 构建；QEMU 不是 ARM64 真机性能/兼容性测试。 |
+| QI-16 | 05 客户端同步与数据工具；ZIP 导出/导入整包缓冲并在 Worker 同时解压多项，移动端峰值内存与响应性没有实测；P2 | 受外部条件阻塞 | 字节数限制已移除，但导出仍会在 Worker 同时保留全部附件输入并生成完整 ZIP；导入会把整个归档交给 Worker 并由 `unzipSync` 同时解压各项。 | Node 24 的隔离 Worker 以 12 个合成 8 MiB 附件（96 MiB）调用生产归档函数，并由主线程每 2ms 采样进程 RSS：导出基线 46 MiB、采样峰值 269 MiB（+223 MiB，0.43 s）；导入在新进程读取 96 MiB ZIP 后转交 Worker，基线 144 MiB、采样峰值 269 MiB（+125 MiB，0.10 s）。这两个值是桌面 Node 的进程级采样，不是浏览器或手机实测。另在隔离 SQLite 服务上用 390×844 IAB 视口，通过设置页选择并导入 96 MiB 合成 ZIP；重载后首页显示 12 篇笔记，数据库持有 12 项、共 96 MiB 附件；随后从设置页导出，浏览器报告成功，ZIP 为 100,671,775 字节，解析后包含 12 篇笔记、12 个附件及 100,663,296 字节附件数据。单轮从点击到下载完成约 148 秒，仅作待调查线索，不作为受控性能基准；无浏览器/手机峰值内存读数。 | 已完成手机尺寸浏览器的完整选择、导入、重载持久化和导出流程；这只是桌面 IAB 的视口模拟。Chrome 扩展的文件选择受本机文件 URL 权限限制，改用 IAB 完成同一隔离流程。当前 SDK 虽安装 `adb`/`emulator`，但 `adb devices -l` 与 `emulator -list-avds` 均为空，且没有 Android 系统镜像或 `cmdline-tools`，无法启动 Android 虚拟设备；仍需 Android 真机或可运行模拟器实测峰值内存与交互响应性，不得把视口模拟当作实机结论。 |
+| QI-17 | 09 设备安装和更新；`server/api.js` 先验证任一有效会话，`server/features/system-updates.js` 的版本与状态 GET 路由均未检查首个账号；与之相对，更新 POST 通过 `system-update-service.js` 限制为首个账号。状态接口返回设备更新状态和最近 64 KiB 日志。更新代理将 `qidian.sh` 的 stdout/stderr 写入日志；部署脚本会输出从 UCI 读取的数据目录路径及 Docker 更新诊断，当前没有字段分类或脱敏。需求只规定首个账号可发起设备更新、Web/LuCI 实时刷新日志，未定义更新状态与日志的读取角色范围；P2 | 待确认 | 暂不改权限，避免擅自改变已允许的多账号读取行为；建议将设备状态与日志设为仅首个管理员可读。 | `tests/server/api.test.mjs` 现验证次级账号读取版本信息为 200（`canUpdateDevice: false`）、读取设备状态及日志为 200，提交更新仍为 403；源码确认状态返回最近最多 64 KiB 原始日志，更新执行重定向部署脚本输出，且脚本会打印数据目录路径。`docs/requirements.md` 只写首个账号可发起更新与 Web/LuCI 日志刷新，架构文档也只区分版本读取和更新提交，没有指定设备日志读取角色。 | 用户此前已收到“所有已登录账号可读”或“仅首个管理员可读”的选择；等待决定后再定权限。 |
+| QI-18 | 05 客户端同步与数据工具；归档曾有 8 MiB 单项、110 MiB 解压总量及 130 MiB 文件限制；P2 | 已验证，完成 | 移除 ZIP 单项、累计字节及压缩包文件大小阈值，保留格式路径、附件清单和条目数量校验；旧 JSON/ZIP 结构仍兼容。 | 归档与服务测试 13/13；验证 8 MiB+1 字节附件完整往返、112 MiB 累计元数据可通过、超过旧 130 MiB 文件大小的合法 JSON 输入不被容量拒绝，以及未知/未声明条目仍被拒绝。 | 大型归档仍整包缓冲，移动端内存另由 QI-16 跟进；ZIP 规范、运行时内存和底层存储能力构成技术边界，不属于应用层容量配额。 |
+| QI-19 | 12 附件容量；8 MiB 单文件/100 MiB 账号配额、8 MiB HTTP 整体请求缓存及 ZIP 归档阈值曾阻止使用剩余数据卷空间；P1 | 已修复，待验证 | 新增 SQLite 迁移移除活动账号附件表的固定文件和总量约束；隐藏 incomplete 元数据行承接上传，256 KiB 分块写入、最多 16 块一批，失败清理；下载、HTTP 请求与浏览器上传均流式处理。旧 legacy claim 表仅用于历史附件认领，不接收新上传。ZIP 不再有应用层单文件/累计字节限制，但仍整包缓冲。 | SQLite 迁移保留原附件并通过外键检查；服务/API 测试验证 120 MiB 单项/128 MiB 账号累计元数据、8 MiB+1 HTTP 上传下载、固定块批次和失败清理；备份归档与服务回归 13/13。宿主磁盘告警边界和 HTTP 集成 8/8。 | 已无应用层容量配额；仍需移动端大归档峰值内存/响应性验收，QI-16 追踪。宿主机文件系统、SQLite、ZIP 格式与客户端内存是实际运行边界。 |
+| QI-20 | 12 宿主数据卷容量；此前无 API 显示 Docker 数据卷所在文件系统容量；P2 | 已修复，待验证 | 服务端 `statfs(DATA_DIR)` 仅向已认证工作区返回数据卷所在文件系统的普通进程可用容量；已用严格超过 70% 时持续告警，降至阈值后消失，不阻止保存或上传。 | 边界测试覆盖正好 70% 不提示、70.01% 提示、系统保留块计入使用率及不可用文件系统；自托管 HTTP 集成测试验证未认证拒绝、认证后返回容量；隔离浏览器登录后的手机尺寸视口实测 70.00% 无告警、70.01% 显示告警、69.99% 后告警消失；全量 692 项测试、类型检查、源码检查、生产构建通过；本次重跑容量与备份相关测试 26/26 通过。 | 浏览器 UI 与阈值状态已验；本机 Docker CLI 可用但 Linux 引擎未运行（`docker ps` 找不到 `dockerDesktopLinuxEngine` 管道），因此仍未在实际 Docker 部署盘上验证 `statfs` 对应挂载卷的读数；也未实机检查移动端样式。 |
+| QI-21 | 10 Docker 与发布；`workflow_dispatch` 可选任意分支，而发布 job 先前只检查事件类型；该分支版本的工作流可在含发布密钥的 job 中运行，即使 checkout 固定读取 `main`；P1 | 已修复，待验证 | 发布 job 条件增加 `github.ref == 'refs/heads/main'`，只有 main 分支版本的手动 workflow 才能进入发布 job、检查/读取发布密钥。 | 新增工作流回归断言，修复前定向测试按预期失败，修复后 iStoreOS/发布定向测试 13/13；GitHub 官方文档确认 `workflow_dispatch` 可指定任意分支，且 `github.ref` 是触发分支。 | 尚未推送，未在 GitHub 上实际 dispatch 非 main 分支以观察 job 被跳过；本机无 actionlint/YAML parser，且本轮 GitHub CLI 因网络无法访问 API。官方依据：[workflow_dispatch 分支选择](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/manually-run-a-workflow)、[`github.ref` 语义](https://docs.github.com/en/actions/reference/workflows-and-actions/contexts)。 |
+
+### QI-19 / QI-20 本轮验证记录
+
+- 附件存储迁移保留原元数据和分块，SQLite `foreign_key_check` 无异常；新结构接受单项 120 MiB、账号累计 128 MiB 的记录。
+- 自托管 HTTP/API 测试成功上传并下载 8 MiB+1 字节附件；额外用例验证固定 256 KiB 分块、每次最多 16 块写入、未完成上传不对外可见、失败上传清理及账号隔离。
+- `node --test --test-concurrency=1 --test-force-exit` 提权隔离运行通过 692/692。普通权限运行因 Windows 沙箱拒绝 Git Bash 子进程和 `127.0.0.1` 回环连接而失败；提权运行后相同测试通过。
+- `node scripts/check-sources.mjs`（203 个 JavaScript 文件）、`node node_modules/vue-tsc/bin/vue-tsc.js --noEmit`、`node node_modules/vite/bin/vite.js build` 和 `git diff --check` 均通过。`pnpm test` 在启动脚本前尝试向 pnpm 缓存创建项目链接并被沙箱以 `EPERM` 拒绝，未改动依赖目录；因此使用已安装依赖直接调用等价脚本验证。
+- 浏览器只打开到固定端口 5173 的登录页；没有使用账号登录，因此告警的真实工作区视觉行为、设备挂载盘表现和移动 Safari/Chrome 均未验证。
+- ZIP 完整备份的 8/110/130 MiB 应用层阈值已移除并有回归；备份仍整包缓冲，真实移动端内存表现继续由 QI-16 跟踪。
 | CI-01 | 01 编辑与内容；剪贴板未限制输入大小；原文低于上限时，Markdown 渲染可能扩张为超过 1,000,000 字符的 HTML，导致可插入却无法保存；超大 HTML 也会进入清理/解析；优先级 P2 | 已验证，完成 | 共享正文字符上限；编辑器与快速收集在解析前拒绝超长原文；转换后 HTML 超限时保留可保存的 Markdown 原文；超大 HTML 有短纯文本时降级保留纯文本。 | 剪贴板插入定向测试 10/10；当前全量 `node --test --test-concurrency=1 --test-force-exit` 675/675；源码检查 198 个文件、`vue-tsc --noEmit`、Vite production build 和 `git diff --check` 均通过。 | 未做真实手机实机、Docker 设备部署验证。 |
 | CI-02 | 02 笔记生命周期；检查编辑器草稿保存、发布、删除确认、移入回收站和失败回滚；优先级 P2 | 已验证，完成 | 修复未修改的已发布笔记在退出编辑时被写成待发布草稿；仅在编辑快照与基线相同且草稿已有内容/笔记已发布时跳过写入。 | 草稿控制器、编辑器 UI、退出流程相关测试 85/85；实际生产构建浏览器确认：未改动退出后没有“待发布修改”，实质编辑后仍保留待发布版本；全量 675/675。 | 未做手机实机和 Docker 设备验证。 |
 | CI-03 | 03 书签与首页；检查导入解析、重复项合并、递归层级/数量/网址校验、删除和批量操作的事务回滚；优先级 P2 | 已检查，无需修改 | 未修改；导入先预览并校验，确认时检查快照未变；批量和删除写入均通过 Vault 事务并保留可恢复入口。 | 检查 `data.js`、`mutation-actions.ts`、`operations.ts`、共享书签验证及导入/批量操作单测；覆盖大文件拒绝、32 层/10,000 项/URL 限制、过期预览与持久化失败回滚；全量 670 项通过。 | 未发现当前检查范围内有证据的问题；实际浏览器导入流程未人工操作。 |
@@ -84,3 +116,27 @@
 - 固定 `http://127.0.0.1:5173/` 桌面本地浏览器验收主导航、快速操作筛选/执行、主题切换并恢复原浅色、账号菜单、搜索 Tab 环和快捷键、版本弹窗初始焦点/关闭恢复、设置弹窗共享 Tab 环。工作区保持 0 篇笔记、0 个书签、0 个回收站项目；未创建验收笔记/书签，结束时关闭本地标签并停止 Vite 服务。
 - 手机视口、屏幕阅读器、真实设备、真实 API/SQLite 服务和 Docker 部署未在本轮模块 07 验收中覆盖。
 - 只在相关实现、验证或新增证据变化时复查已完成模块；待确认事项与未验证边界保留在工作项中。
+
+### 自动恢复后的复验
+
+- 发布包/工作流回归 13/13，发布版本选择与重试逻辑 14/14；发布步骤仍未推送到远端，因此 GitHub runner 尚未验证工作流。
+- 附件、归档、存储告警、API 与自托管服务定向测试共 49/49。普通权限下两条本机 HTTP 用例因回环连接 `EACCES` 失败；按仓库权限流程提权重跑自托管测试 5/5 后通过。
+- 次级账号读取设备状态与日志的 API 回归本轮复跑 1/1，确认当前允许登录账号读取、只允许首个账号提交设备更新；源码复核确认原始日志可包含宿主数据目录路径与 Docker 输出；尚未收到是否收紧读取范围的产品决定。
+- QI-16 在隔离 `127.0.0.2:5173` 服务、独立 SQLite 数据库和 390×844 IAB 视口完成 96 MiB 合成 ZIP 的真实页面选取、导入、重载持久化和导出；下载文件校验为 12 篇笔记、12 个附件、100,663,296 附件字节。没有操作固定端口 `127.0.0.1:5173` 上的既有页面或账号；Chrome 扩展文件上传受 Allow access to file URLs 权限限制，IAB 文件选择成功。桌面视口模拟不提供实机内存峰值，QI-16 仍待真机内存/响应性测量。
+- （此前一次本地验收记录）固定端口 5173 曾展示空工作区，未创建或修改笔记/书签；当时端口由已有进程提供，本轮没有启动或停止服务。当前环境已在下方追加复核：页面为登录入口且账号初始化完成，不操作已有数据。
+- 本轮没有提交、推送、执行 Docker 构建或发布。
+- 先前审查发现工作树中的 workflow 仍使用 Node 20 运行时 Action；随后已替换为 Node 24 兼容版本并保留完整 SHA，定向回归 13/13。尚未推送，因此远程 runner 结果仍待验证。
+
+### 2026-10-22 本轮复核
+
+- 发布工作流使用的 7 个第三方 Action 均为 40 位 SHA；逐项核对官方 GitHub Release 页面，注释版本与提交一致，页面显示签名已验证：[checkout v7.0.1](https://github.com/actions/checkout/releases/tag/v7.0.1)、[pnpm/action-setup v6.1.0](https://github.com/pnpm/action-setup/releases/tag/v6.1.0)、[setup-node v7.1.0](https://github.com/actions/setup-node/releases/tag/v7.1.0)、[setup-qemu v4.4.0](https://github.com/docker/setup-qemu-action/releases/tag/v4.4.0)、[setup-buildx v4.4.1](https://github.com/docker/setup-buildx-action/releases/tag/v4.4.1)、[build-push v7.4.0](https://github.com/docker/build-push-action/releases/tag/v7.4.0)、[login v4.6.0](https://github.com/docker/login-action/releases/tag/v4.6.0)。
+- `pnpm test/check/build` 启动时因 pnpm 尝试重建依赖目录链接而触发沙箱 `EPERM`；提权重试的 pnpm 在无交互终端下拒绝移除旧 `node_modules`，没有绕过清理保护。用现有依赖直接执行等价命令完成验证：全量测试 692/692、源文件检查 203 个 JS 文件、`vue-tsc --noEmit`、Vite production build 均通过。
+- 发布工作流回归另加断言，禁止将发布凭据放在 workflow 或 release job 全局作用域；该断言加入后 iStoreOS 发布套件复跑 13/13 通过。Docker Hub 凭据和发布 PAT 目前只在各自需要的步骤暴露。
+- Android SDK 工具存在但设备列表和 AVD 列表均为空，系统镜像及 `cmdline-tools` 未安装；因此 QI-16 仍无法进行真实 Android 设备或模拟器内存测量。本机 `docker ps` 无法连接 Docker Desktop Linux 引擎管道，QI-20 的真实挂载卷读数仍待引擎可用后验证。未推送或提交；QI-13/QI-15/QI-21 的远端 workflow 验收仍需后续推送，QI-17 等待产品决定。
+
+### 2026-10-22 附件与容量告警续验
+
+- 再次检查确认附件上传经专用流式路径，不受一般 JSON 请求体 8 MiB 上限影响；剩余 5 MiB 校验只用于浏览器书签 HTML 导入。附件和 ZIP 不设应用层单文件或累计字节上限，ZIP 的条目结构校验仍保留。
+- `pnpm test` 仍因沙箱拒绝 pnpm 在外部缓存目录创建项目符号链接而无法启动。使用现有依赖串行重跑完整测试 692/692 通过；源文件检查 203 个 JS 文件、Vue 类型检查和 Vite 生产构建均通过，`git diff --check` 通过。第一次全量测试与其他检查并行时有失败项，隔离重跑全部通过，未复现失败。
+- QI-19 附件逻辑及迁移已通过完整回归；QI-20 告警阈值和 API 测试已通过，先前隔离浏览器也已验证 70.00% 不提示、70.01% 提示、回落至 69.99% 后隐藏。本轮将自托管 HTTP 集成测试改为使用真实临时 SQLite 数据目录，验证 `/api/system/storage` 返回该目录的实际 `statfs` 结果，并继续验证未认证请求返回 401；提权隔离测试 5/5。当前工作树所在 Windows 卷的 `statfs` 实测可用，显示 12.41% 已用，但真实 Docker 挂载卷读数仍待引擎验证；真实移动设备内存也待设备验收。
+- 工作区仍包含本轮及此前的未提交改动；本轮未提交、推送、构建 Docker 镜像或发布。

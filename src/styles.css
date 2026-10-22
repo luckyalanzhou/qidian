@@ -645,3 +645,4 @@ body.booting > :not(#loginGate){display:none!important}
 .editor-markdown-preview a{overflow-wrap:anywhere}
 .editor-preview-toggle{white-space:nowrap}
 @media(max-width:720px){.editor-markdown-preview{min-height:300px;padding:18px 16px 38px}}
+.storage-capacity-warning{margin:12px clamp(16px,3.2vw,56px) 0;padding:10px 14px;border:1px solid #e8c278;border-radius:10px;background:var(--yellow);color:var(--text);font-size:12px;line-height:1.6}.storage-capacity-warning strong{color:#9a6516}:root[data-theme="dark"] .storage-capacity-warning{border-color:#806a3b}:root[data-theme="dark"] .storage-capacity-warning strong{color:#f0c875}

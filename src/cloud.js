@@ -194,7 +194,7 @@ export const flush = () => cloudSync.flush();
 export const hasUnsaved = () => cloudSync.hasUnsaved();
 export async function upload(file) {
   if (DEV) throw Error('文件上传需要启动本地 SQLite 完整预览；当前为界面开发模式');
-  if (!file.size || file.size > 8 * 1024 * 1024) throw Error('单个文件须介于 1 字节与 8 MB 之间');
+  if (!file.size) throw Error('文件为空');
   return uploadAsset(file);
 }
 export async function pruneAssets() {
