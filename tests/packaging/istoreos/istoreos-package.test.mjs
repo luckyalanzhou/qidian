@@ -131,11 +131,15 @@ test('iStoreOS release is manual and uses package.json as its single version sou
   assert.match(pullRequestWorkflow, /persist-credentials: false/);
   assert.doesNotMatch(pullRequestWorkflow, /secrets\.|push: true|gh release/);
   assert.doesNotMatch(pullRequestWorkflow, /setup-qemu-action/);
-  assert.match(workflow, /release_notes:/);
+  assert.match(workflow, /release_notes:\r?\n\s+description: "中文发布说明：每行写一项用户可感知的改进或修复，不要填写提交标题或构建步骤"\r?\n\s+required: true/);
   assert.match(workflow, /fetch-depth: 0/);
   assert.match(workflow, /permissions:\r?\n  contents: read/);
   assert.match(workflow, /token: \$\{\{ secrets\.RELEASE_PUBLISH_TOKEN \}\}/);
   assert.match(workflow, /## 本版优化与新增/);
+  assert.match(releaseWorkflow, /name: Validate release notes[\s\S]*?请填写面向使用者的中文发布说明/);
+  assert.doesNotMatch(releaseWorkflow, /git log --reverse --format='%s'/);
+  assert.match(releaseWorkflow, /## 获取与安装/);
+  assert.doesNotMatch(releaseWorkflow, /源码版本已自动递增并提交到 `main`/);
   assert.match(workflow, /while \[\[ "\$detail" =~/);
   assert.match(workflow, /prefix=\$\{BASH_REMATCH\[0\]\}/);
   assert.match(workflow, /--notes-file "\$notes_file"/);

@@ -16,8 +16,8 @@ on:
           - major
         default: patch
       release_notes:
-        description: "发布说明，每行一项"
-        required: false
+        description: "中文发布说明：每行写一项用户可感知的改进或修复，不要填写提交标题或构建步骤"
+        required: true
         type: string
 
 permissions:
@@ -127,6 +127,16 @@ jobs:
           set -euo pipefail
           version=$(node scripts/release-version.mjs "$RELEASE_BUMP")
           echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Validate release notes
+        if: steps.version.outputs.promote_only != 'true'
+        env:
+          RELEASE_NOTES: ${{ inputs.release_notes }}
+        run: |
+          set -euo pipefail
+          test -n "$(printf '%s' "$RELEASE_NOTES" | tr -d '[:space:]')" || {
+            echo "请填写面向使用者的中文发布说明，每项单独一行。" >&2
+            exit 1
+          }
       - name: Install dependencies
         if: steps.version.outputs.promote_only != 'true'
         run: pnpm install --frozen-lockfile --prefer-offline
@@ -250,14 +260,6 @@ jobs:
           title="栖点 ${version} · iStoreOS Docker"
           notes_file=$(mktemp)
           details="$RELEASE_NOTES"
-          if [ -z "$(printf '%s' "$details" | tr -d '[:space:]')" ]; then
-            previous_tag=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || true)
-            if [ -n "$previous_tag" ]; then
-              details=$(git log --reverse --format='%s' "${previous_tag}..HEAD^" --invert-grep --grep='^chore: release ')
-            else
-              details=$(git log -1 --format='%s' HEAD^)
-            fi
-          fi
           {
             printf '## 本版优化与新增\n\n'
             item=0
@@ -277,11 +279,9 @@ jobs:
               item=$((item + 1))
               printf '%d. %s\n' "$item" "$detail"
             done < <(printf '%s\n' "$details")
-            if [ "$item" -eq 0 ]; then printf '1. 完成本版维护与兼容性优化。\n'; fi
-            printf '\n## 安装包\n\n'
-            printf -- '- iStoreOS Docker 安装包 v%s。\n' "$version"
-            printf -- '- Docker Hub 多架构镜像：`luckyalanzhou/qidian:%s`（amd64 / arm64）。\n' "$version"
-            printf -- '- 源码版本已自动递增并提交到 `main`。\n'
+            printf '\n## 获取与安装\n\n'
+            printf -- '- iStoreOS：下载附件中的 `栖点-%s.run`，并使用配套的 `.sha256` 文件校验。\n' "$version"
+            printf -- '- Docker：`docker pull luckyalanzhou/qidian:%s`（amd64 / arm64）。\n' "$version"
           } > "$notes_file"
           if [ "$RELEASE_EXISTS" = "true" ]; then
             tag_sha=$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${tag}" --jq '.object.sha' 2>/dev/null || true)
