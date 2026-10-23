@@ -6,6 +6,7 @@ export function mountItemMenuController(document: Document, window: ItemMenuWind
   function positionOpenMenus() {
     frame = 0;
     const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+    const viewportWidth = document.documentElement.clientWidth || window.innerWidth;
     const compact = window.matchMedia?.('(max-width: 720px)').matches ?? window.innerWidth <= 720;
 
     document.querySelectorAll<HTMLDetailsElement>('.item-menu[open]').forEach((menu) => {
@@ -13,6 +14,7 @@ export function mountItemMenuController(document: Document, window: ItemMenuWind
       if (!panel) return;
 
       menu.classList.remove('opens-left');
+      panel.style.translate = '';
       const rect = menu.getBoundingClientRect();
       const spaceBelow = Math.max(0, viewportHeight - rect.bottom - (compact ? 84 : 8));
       const spaceAbove = Math.max(0, rect.top - 8);
@@ -23,6 +25,10 @@ export function mountItemMenuController(document: Document, window: ItemMenuWind
       menu.classList.toggle('opens-up', opensUp);
       panel.style.maxHeight = `${Math.max(0, Math.min(heightLimit, (opensUp ? spaceAbove : spaceBelow) - 8))}px`;
       menu.classList.toggle('opens-left', panel.getBoundingClientRect().left < 8);
+      const bounds = panel.getBoundingClientRect();
+      const shift = bounds.left < 8 ? 8 - bounds.left
+        : bounds.right > viewportWidth - 8 ? viewportWidth - 8 - bounds.right : 0;
+      if (shift) panel.style.translate = `${shift}px 0`;
     });
   }
 
@@ -42,7 +48,10 @@ export function mountItemMenuController(document: Document, window: ItemMenuWind
     if (!menu.open) {
       menu.classList.remove('opens-up');
       const panel = menu.querySelector<HTMLElement>(':scope > .item-menu-panel');
-      if (panel) panel.style.maxHeight = '';
+      if (panel) {
+        panel.style.maxHeight = '';
+        panel.style.translate = '';
+      }
     } else {
       schedulePosition();
     }

@@ -23,7 +23,7 @@ function icon(name: string) {
 
 <template>
   <Teleport to="#sidebarBrandIsland">
-    <button class="brand home-brand" id="brandHome" type="button" aria-label="栖点，返回首页" @click.stop="navigationActions.execute({ type: 'dashboard' })"><span class="brand-icon" aria-hidden="true">栖</span><span class="brand-copy"><strong>栖点</strong></span></button>
+    <button class="brand home-brand" id="brandHome" type="button" aria-label="栖点，返回首页" @click.stop="navigationActions.execute({ type: 'dashboard' })"><span class="brand-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="#i-book" /></svg></span><span class="brand-copy"><strong>栖点</strong><small>私人知识库</small></span></button>
   </Teleport>
   <Teleport to="#sidebarCreateIsland">
     <button class="new-note" id="newSide" type="button" @click.stop="navigationActions.execute({ type: 'open-create-menu' })">
@@ -31,7 +31,7 @@ function icon(name: string) {
     </button>
   </Teleport>
   <Teleport to="#qidianSidebarIsland">
-    <div class="side-label">导航</div>
+    <div class="side-label">工作区</div>
     <div id="sideCore">
       <button class="side-link" :class="{ active: navigation.page === 'dashboard' }" data-dashboard @click.stop="navigationActions.execute({ type: 'dashboard' })">
         <span class="ico"><svg aria-hidden="true"><use :href="icon('home')" /></svg></span>首页
@@ -44,7 +44,7 @@ function icon(name: string) {
         <span class="ico"><svg aria-hidden="true"><use :href="icon('link')" /></svg></span>书签
         <span class="count">{{ sidebar.snapshot.counts.bookmarks }}</span>
       </button>
-      <template v-if="notesContext">
+      <div class="sidebar-note-views">
         <div class="side-label side-nav-caption">笔记视图</div>
         <button class="side-link" :class="{ active: navigation.page === 'home' && navigation.active === 'recent' }" data-nav="recent" @click.stop="navigationActions.execute({ type: 'home', category: 'recent' })">
           <span class="ico"><svg aria-hidden="true"><use :href="icon('note')" /></svg></span>最近编辑
@@ -58,14 +58,14 @@ function icon(name: string) {
           <span class="ico"><svg aria-hidden="true"><use :href="icon('edit')" /></svg></span>草稿箱
           <span class="count">{{ sidebar.snapshot.counts.drafts }}</span>
         </button>
-      </template>
+      </div>
       <button class="side-link" :class="{ active: navigation.page === 'trash' }" data-trash-nav @click.stop="navigationActions.execute({ type: 'trash' })">
         <span class="ico"><svg aria-hidden="true"><use :href="icon('trash')" /></svg></span>回收站
         <span class="count">{{ sidebar.snapshot.counts.trash }}</span>
       </button>
     </div>
 
-    <section class="side-section" :hidden="!notesContext">
+    <section class="side-section">
       <div class="side-label side-heading">
         <button
           id="toggleNoteTypes"

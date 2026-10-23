@@ -1,4 +1,4 @@
-
+@layer foundation {
 :root{--bg:#f7f8fc;--panel:#fff;--panel2:#f4f6fb;--text:#232b3d;--sub:#5f6f87;--line:#e7eaf1;--accent:#5261cf;--accent2:#ebeeff;--accent-text:#4352bb;--green:#1b9977;--yellow:#fff8e9;--shadow:0 16px 48px rgba(37,48,94,.06);--r:17px;--rail:254px;font-synthesis:none}
 :root[data-theme="dark"]{--bg:#10141f;--panel:#1a2030;--panel2:#232b3c;--text:#e6eaf5;--sub:#9aa8c0;--line:#30394b;--accent:#98a5ff;--accent2:#303960;--accent-text:#bbc5ff;--green:#66d2ae;--yellow:#352d1c;--shadow:0 16px 45px rgba(0,0,0,.19)}
 *{box-sizing:border-box}html{scroll-behavior:smooth;-webkit-text-size-adjust:100%;text-size-adjust:100%}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei","Noto Sans CJK SC",sans-serif;-webkit-font-smoothing:antialiased}button,input,textarea,select{font:inherit}button{cursor:pointer}a{color:var(--accent-text);text-decoration:none}button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,[contenteditable]:focus-visible{outline:3px solid #a9aff6;outline-offset:2px}.visually-hidden{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
@@ -646,3 +646,5 @@ body.booting > :not(#loginGate){display:none!important}
 .editor-preview-toggle{white-space:nowrap}
 @media(max-width:720px){.editor-markdown-preview{min-height:300px;padding:18px 16px 38px}}
 .storage-capacity-warning{margin:12px clamp(16px,3.2vw,56px) 0;padding:10px 14px;border:1px solid #e8c278;border-radius:10px;background:var(--yellow);color:var(--text);font-size:12px;line-height:1.6}.storage-capacity-warning strong{color:#9a6516}:root[data-theme="dark"] .storage-capacity-warning{border-color:#806a3b}:root[data-theme="dark"] .storage-capacity-warning strong{color:#f0c875}
+
+}

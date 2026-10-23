@@ -42,7 +42,7 @@ defineExpose({ show, showStartupError });
   </div>
 
   <div v-else-if="state.visible" class="auth-card" :class="{ registering }">
-    <div class="auth-brand"><div class="brand-icon">栖</div><div><strong>栖点</strong></div></div>
+    <div class="auth-brand"><div class="brand-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="#i-book" /></svg></div><div><strong>栖点</strong></div></div>
     <h1 id="authTitle">{{ title }}</h1>
     <p class="auth-intro">{{ intro }}</p>
     <form id="authForm" novalidate @submit.prevent="flow.submit">

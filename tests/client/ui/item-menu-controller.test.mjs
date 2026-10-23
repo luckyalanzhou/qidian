@@ -38,3 +38,27 @@ test('item menus position within the viewport and close when the user clicks out
   controller.destroy();
   dom.window.close();
 });
+
+test('a mobile menu stays inside the content viewport when either alignment would overflow', () => {
+  const dom = new JSDOM('<details class="item-menu" open><summary>更多</summary><div class="item-menu-panel">Actions</div></details>', { pretendToBeVisual: true });
+  const { document } = dom.window;
+  dom.window.innerWidth = 411;
+  dom.window.innerHeight = 844;
+  Object.defineProperty(document.documentElement, 'clientWidth', { value: 391 });
+  let frame;
+  dom.window.requestAnimationFrame = callback => { frame = callback; return 1; };
+  const menu = document.querySelector('.item-menu');
+  const panel = document.querySelector('.item-menu-panel');
+  menu.getBoundingClientRect = () => ({ top: 240, bottom: 276 });
+  panel.getBoundingClientRect = () => ({ left: 177, right: 457, width: 280 });
+  Object.defineProperty(panel, 'scrollHeight', { value: 220 });
+  const controller = mountItemMenuController(document, dom.window);
+  controller.schedulePosition();
+  frame();
+  assert.equal(panel.style.translate, '-74px 0', 'right overflow is corrected against clientWidth, excluding the scrollbar');
+  menu.open = false;
+  menu.dispatchEvent(new dom.window.Event('toggle'));
+  assert.equal(panel.style.translate, '', 'closing removes the correction before the next layout');
+  controller.destroy();
+  dom.window.close();
+});

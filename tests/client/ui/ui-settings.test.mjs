@@ -50,7 +50,7 @@ test('theme menu supports system, light and dark preferences and follows system 
   assert.equal(saves.at(-1).theme,'system');
   options.setSystemDark(false);
   assert.equal(w.document.documentElement.dataset.theme,'light','system preference reacts without another save');
-  assert.equal(w.document.querySelector('meta[name="theme-color"]').content,'#f6f7fb');
+  assert.equal(w.document.querySelector('meta[name="theme-color"]').content,'#f8f9f7');
   button.click();
   w.document.querySelector('[data-theme-choice="dark"]').click();
   assert.equal(w.document.documentElement.dataset.theme,'dark');

@@ -34,6 +34,7 @@ function setAllFolders(open: boolean) {
     <div v-if="dashboard.active" class="dashboard-page">
       <header class="dashboard-intro">
         <div class="dashboard-intro-copy">
+          <span class="workspace-eyebrow">个人知识库</span>
           <h1>我的空间</h1>
           <p>笔记保存内容；书签保存网址。</p>
         </div>
@@ -43,33 +44,39 @@ function setAllFolders(open: boolean) {
       <div class="dashboard-workspaces">
         <section class="dashboard-section dashboard-note-workspace" aria-labelledby="dashboardNotesTitle">
           <div class="dashboard-section-head">
-            <div>
-              <h2 id="dashboardNotesTitle">笔记</h2>
-              <p>最近笔记 · {{ dashboard.snapshot.noteCount }} 篇</p>
+            <div class="dashboard-section-title">
+              <span class="workspace-section-icon"><span class="ico"><svg aria-hidden="true"><use :href="icon('book')" /></svg></span></span>
+              <div>
+                <h2 id="dashboardNotesTitle">笔记</h2>
+                <p>最近笔记 · {{ dashboard.snapshot.noteCount }} 篇</p>
+              </div>
             </div>
             <div class="dashboard-section-actions">
               <button class="secondary-btn" type="button" data-new="note" @click.stop="navigationActions.execute({ type: 'create-note', kind: 'note' })"><span class="ico"><svg aria-hidden="true"><use :href="icon('plus')" /></svg></span>新建笔记</button>
-              <button type="button" class="dashboard-view-all" data-nav="all" @click.stop="navigationActions.execute({ type: 'home', category: 'all' })">全部笔记 <span class="ico"><svg aria-hidden="true"><use :href="icon('chevron')" /></svg></span></button>
             </div>
           </div>
           <div v-if="dashboard.snapshot.notes.length" class="notes dashboard-notes">
             <NoteCard v-for="note in dashboard.snapshot.notes" :key="note.id" :note="note" />
           </div>
           <div v-else class="dashboard-empty">
+            <span class="empty-symbol"><span class="ico"><svg aria-hidden="true"><use :href="icon('note')" /></svg></span></span>
             <span>还没有笔记</span>
             <button type="button" data-new="note" @click.stop="navigationActions.execute({ type: 'create-note', kind: 'note' })">写下第一篇 <span class="ico"><svg aria-hidden="true"><use :href="icon('chevron')" /></svg></span></button>
           </div>
+          <footer class="dashboard-section-foot"><button type="button" class="dashboard-view-all" data-nav="all" @click.stop="navigationActions.execute({ type: 'home', category: 'all' })">全部笔记 <span class="ico"><svg aria-hidden="true"><use :href="icon('chevron')" /></svg></span></button></footer>
         </section>
 
         <section class="dashboard-section dashboard-bookmarks" aria-labelledby="dashboardBookmarksTitle">
           <div class="dashboard-section-head">
-            <div>
-              <h2 id="dashboardBookmarksTitle">书签</h2>
-              <p>{{ dashboard.snapshot.bookmarkCount }} 个网址 · {{ dashboard.snapshot.folderCount }} 个顶层分组</p>
+            <div class="dashboard-section-title">
+              <span class="workspace-section-icon is-bookmark"><span class="ico"><svg aria-hidden="true"><use :href="icon('link')" /></svg></span></span>
+              <div>
+                <h2 id="dashboardBookmarksTitle">书签</h2>
+                <p>{{ dashboard.snapshot.bookmarkCount }} 个网址 · {{ dashboard.snapshot.folderCount }} 个顶层分组</p>
+              </div>
             </div>
             <div class="dashboard-section-actions">
               <button class="secondary-btn" type="button" data-dashboard-add-bookmark @click.stop="navigationActions.execute({ type: 'add-bookmark' })"><span class="ico"><svg aria-hidden="true"><use :href="icon('plus')" /></svg></span>添加书签</button>
-              <button type="button" class="dashboard-view-all" data-open-bookmarks @click.stop="navigationActions.execute({ type: 'bookmarks' })">全部书签 <span class="ico"><svg aria-hidden="true"><use :href="icon('chevron')" /></svg></span></button>
             </div>
           </div>
 
@@ -94,9 +101,11 @@ function setAllFolders(open: boolean) {
             </div>
           </template>
           <div v-else class="dashboard-empty">
+            <span class="empty-symbol"><span class="ico"><svg aria-hidden="true"><use :href="icon('link')" /></svg></span></span>
             <span>还没有书签</span>
             <button type="button" data-dashboard-add-bookmark @click.stop="navigationActions.execute({ type: 'add-bookmark' })">添加第一个网址 <span class="ico"><svg aria-hidden="true"><use :href="icon('chevron')" /></svg></span></button>
           </div>
+          <footer class="dashboard-section-foot"><button type="button" class="dashboard-view-all" data-open-bookmarks @click.stop="navigationActions.execute({ type: 'bookmarks' })">全部书签 <span class="ico"><svg aria-hidden="true"><use :href="icon('chevron')" /></svg></span></button></footer>
         </section>
       </div>
     </div>

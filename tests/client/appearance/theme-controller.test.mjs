@@ -47,7 +47,7 @@ test('manual theme choice persists once and updates the document and Pinia proje
   h.controller.apply('dark', { save: true });
   assert.deepEqual(h.calls, [
     ['preference', 'dark'],
-    ['theme-color', 'content', '#10141f'],
+    ['theme-color', 'content', '#141b18'],
     ['resolved', 'dark', true],
     ['persist']
   ]);

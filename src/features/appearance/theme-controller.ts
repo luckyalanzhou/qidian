@@ -23,7 +23,7 @@ export function createThemeController(dependencies: ThemeControllerDependencies)
     const resolvedDark = preference === 'system' ? !!media?.matches : preference === 'dark';
     document.documentElement.dataset.theme = resolvedDark ? 'dark' : 'light';
     document.documentElement.dataset.themePreference = preference;
-    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', resolvedDark ? '#10141f' : '#f6f7fb');
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', resolvedDark ? '#141b18' : '#f8f9f7');
     dependencies.setResolvedState(preference, resolvedDark);
   }
 
